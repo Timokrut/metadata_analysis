@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Image Tag Analyzer</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 700px;
+            margin: 2em auto;
+            background: #fafafa;
+        }
+        form {
+            margin-bottom: 2em;
+            background: #fff;
+            padding: 1.5em;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        input[type=file] {
+            margin-bottom: 1em;
+        }
+        .result {
+            background: #fff;
+            padding: 1.5em;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .ai { color: red; }
+        .real { color: green; }
+        table {
+            border-collapse: collapse;
+            margin-top: 1em;
+            width: 100%;
+        }
+        th, td {
+            padding: 4px 8px;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>AI Image Tag Analyzer</h1>
+    <form action="/analyze" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept="image/*" required>
+        <button type="submit">Анализировать</button>
+    </form>
+
+    {% if result %}
+    <div class="result">
+        <h2>Результат:</h2>
+        <p><strong>Файл:</strong> {{ result.filename }}</p>
+        <p><strong>Вероятно:</strong>
+            {% if result.is_ai %}
+                <span class="ai">AI-сгенерированное изображение</span>
+            {% else %}
+                <span class="real">Настоящее фото</span>
+            {% endif %}
+        </p>
+        <p>{{ result.explanation }}</p>
+
+        <h3>Пример метаданных:</h3>
+        <table>
+            <tr><th>Тег</th><th>Значение</th></tr>
+            {% for k, v in result.metadata.items() %}
+            <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endif %}
+</body>
+</html>
+

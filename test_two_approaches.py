@@ -2,7 +2,7 @@ import json
 import subprocess
 from collections import Counter
 from pathlib import Path
-import pandas as pd
+import sqlite3
 
 def get_metadata(path):
     """Extract EXIF metadata from a file using exiftool."""
@@ -18,33 +18,7 @@ def get_metadata(path):
         data = {}
     return data
 
-
-# --- Approach A: Rule-based ---
-def is_ai_rule_based(metadata):
-    suspicious = False
-    reasons = []
-
-    # 1. Missing camera info
-    if not metadata.get("Make") or not metadata.get("Model"):
-        suspicious = True
-        reasons.append("Missing camera Make/Model")
-
-    # 2. Software field indicates editing/AI
-    software = str(metadata.get("Software", "")).lower()
-    if any(word in software for word in ["stable", "diffusion", "midjourney", "dalle", "ai"]):
-        suspicious = True
-        reasons.append(f"Suspicious software: {software}")
-
-    # 3. Very few tags → suspicious
-    if len(metadata.keys()) < 5:
-        suspicious = True
-        reasons.append("Too few metadata tags")
-
-    return suspicious, reasons
-
-
-# --- Approach B: Statistical tag frequency analysis ---
-def analyze_tag_frequencies(dataset_dir_real, dataset_dir_ai):
+def analyze_tag_frequencies_sql(dataset_dir_real, dataset_dir_ai, db_path="tags.db"):
     def collect_tags(path_dir):
         tags = []
         for f in Path(path_dir).glob("**/*.*"):
@@ -53,47 +27,69 @@ def analyze_tag_frequencies(dataset_dir_real, dataset_dir_ai):
         return tags
 
     real_tags = collect_tags(dataset_dir_real)
-    ai_tags = collect_tags(dataset_dir_ai)
+    # ai_tags = collect_tags(dataset_dir_ai)
 
     real_counts = Counter(real_tags)
-    ai_counts = Counter(ai_tags)
+    # ai_counts = Counter(ai_tags)
 
-    # Build a DataFrame for comparison
-    all_tags = set(real_counts.keys()) | set(ai_counts.keys())
-    data = []
+    all_tags = set(real_counts.keys())# | set(ai_counts.keys())
+    data_to_insert = []
     for tag in all_tags:
-        data.append({
-            "Tag": tag,
-            "RealFreq": real_counts[tag],
-            "AIFreq": ai_counts[tag],
-        })
-    df = pd.DataFrame(data)
-    df["Diff"] = df["RealFreq"] - df["AIFreq"]
-    df["Ratio"] = (df["RealFreq"] + 1) / (df["AIFreq"] + 1)
-    return df.sort_values("Ratio", ascending=False)
+        rf = real_counts[tag]
+        af = 0 # ai_counts[tag]
+        diff = rf - af
+        ratio = (rf + 1) / (af + 1)
+        data_to_insert.append((tag, rf, af, diff, ratio))
 
-def is_ai_statistical(metadata, top_tags):
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS tag_frequencies (
+            Tag TEXT PRIMARY KEY,
+            RealFreq INTEGER,
+            AIFreq INTEGER,
+            Diff INTEGER,
+            Ratio REAL
+        )
+    """)
+    cur.executemany("""
+        INSERT OR REPLACE INTO tag_frequencies (Tag, RealFreq, AIFreq, Diff, Ratio)
+        VALUES (?, ?, ?, ?, ?)
+    """, data_to_insert)
+    conn.commit()
+    conn.close()
+    print(f"[INFO] Saved {len(data_to_insert)} tags to {db_path}")
+
+def get_top_tags(db_path="tags.db", top_n=100):
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT Tag FROM tag_frequencies
+        ORDER BY Ratio DESC
+        LIMIT ?
+    """, (top_n,))
+    top_tags = [row[0] for row in cur.fetchall()]
+    conn.close()
+    return top_tags
+
+def is_ai_statistical_sql(metadata, db_path="tags.db", top_n=100):
+    top_tags = get_top_tags(db_path, top_n)
     present_tags = set(metadata.keys())
     overlap = present_tags & set(top_tags)
     score = len(overlap) / len(top_tags)
 
-    # if too few top tags match → likely AI
-    return score < 0.3, f"Tag overlap score={score:.2f}"
+    is_ai = score < 0.3
+    return is_ai, f"Tag overlap score={score:.2f}"
 
 if __name__ == "__main__":
-    meta = get_metadata("not_ai_generated.HEIC")
-
-    # Rule-based
-    flag, reasons = is_ai_rule_based(meta)
-    print(f"Rule-based result: \nflag: {'suspicious' if flag else 'not suspicious'}\nwhat is suspicious: {'None' if len(reasons) == 0 else ", ".join(reasons)}")
+    meta1 = get_metadata("ai_generated.png")
+    meta2 = get_metadata("not_ai_generated.HEIC")
 
     # Statistical approach
-    df = analyze_tag_frequencies("dataset/real", "dataset/ai")
-    print(df.head(10))   # see top distinguishing tags
+    # df = analyze_tag_frequencies_sql("dataset/images", "dataset/ai")
 
-    # Pick top 25% tags
-    top_tags = df["Tag"].head(int(len(df)*0.25)).tolist()
-
-    flag, reason = is_ai_statistical(meta, top_tags)
+    flag, reason = is_ai_statistical_sql(meta1)
     print(f"Statistical approach\nSuspicious: {flag}\nReason:{reason}")
  
+    flag, reason = is_ai_statistical_sql(meta2)
+    print(f"Statistical approach\nSuspicious: {flag}\nReason:{reason}")
