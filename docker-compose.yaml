@@ -1,0 +1,39 @@
+services:
+  metadata-analysis:
+    build: ./
+    command: uvicorn server:app --host 0.0.0.0 --port 8888 
+    volumes:
+      - ./metadata-analysis:/app
+    environment:
+      SOMETHING: data
+
+  video-analysis:
+    build: 
+    command: 
+    volumes:
+      - ./video-analysis:/app
+    environment: 
+      SOMETHING: data
+
+  audio-analysis:
+    build: 
+    command: 
+    volumes:
+      - ./audio-analysis:/app
+      - /mnt/logs:/var/logs/futureslogs
+    environment: 
+      SOMETHING: data
+
+  decision_block: 
+    build: 
+    command: 
+    volumes:
+      - ./decision_block:/app
+    environment: 
+      SOMETHING: data
+    ports: 
+      - "8000:8000"
+    depends_on: 
+      - metadata-analysis 
+      - video-analysis
+      - audio-analysis
