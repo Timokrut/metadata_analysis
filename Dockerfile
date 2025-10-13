@@ -15,4 +15,4 @@ COPY ./download_data.py ./server.py ./tags.db ./
 RUN mkdir -p templates 
 COPY ./templates/index.html ./templates
 
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8888"]
+# CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8888"]

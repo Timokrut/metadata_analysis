@@ -27,16 +27,16 @@ def analyze_tag_frequencies_sql(dataset_dir_real, dataset_dir_ai, db_path="tags.
         return tags
 
     real_tags = collect_tags(dataset_dir_real)
-    # ai_tags = collect_tags(dataset_dir_ai)
+    ai_tags = collect_tags(dataset_dir_ai)
 
     real_counts = Counter(real_tags)
-    # ai_counts = Counter(ai_tags)
+    ai_counts = Counter(ai_tags)
 
-    all_tags = set(real_counts.keys())# | set(ai_counts.keys())
+    all_tags = set(real_counts.keys()) | set(ai_counts.keys())
     data_to_insert = []
     for tag in all_tags:
         rf = real_counts[tag]
-        af = 0 # ai_counts[tag]
+        af = ai_counts[tag]
         diff = rf - af
         ratio = (rf + 1) / (af + 1)
         data_to_insert.append((tag, rf, af, diff, ratio))
@@ -82,14 +82,14 @@ def is_ai_statistical_sql(metadata, db_path="tags.db", top_n=100):
     return is_ai, f"Tag overlap score={score:.2f}"
 
 if __name__ == "__main__":
-    meta1 = get_metadata("ai_generated.png")
-    meta2 = get_metadata("not_ai_generated.HEIC")
+    # meta1 = get_metadata("ai_generated.png")
+    # meta2 = get_metadata("not_ai_generated.HEIC")
 
     # Statistical approach
-    # df = analyze_tag_frequencies_sql("dataset/images", "dataset/ai")
+    df = analyze_tag_frequencies_sql("dataset/real", "dataset/ai")
 
-    flag, reason = is_ai_statistical_sql(meta1)
-    print(f"Statistical approach\nSuspicious: {flag}\nReason:{reason}")
- 
-    flag, reason = is_ai_statistical_sql(meta2)
-    print(f"Statistical approach\nSuspicious: {flag}\nReason:{reason}")
+ #    flag, reason = is_ai_statistical_sql(meta1)
+ #    print(f"Statistical approach\nSuspicious: {flag}\nReason:{reason}")
+ # 
+ #    flag, reason = is_ai_statistical_sql(meta2)
+ #    print(f"Statistical approach\nSuspicious: {flag}\nReason:{reason}")

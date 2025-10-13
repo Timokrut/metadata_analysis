@@ -37,16 +37,16 @@ def analyze_tag_frequencies_sql(dataset_dir_real, dataset_dir_ai, db_path="tags.
         return tags
 
     real_tags = collect_tags(dataset_dir_real)
-    # ai_tags = collect_tags(dataset_dir_ai)
+    ai_tags = collect_tags(dataset_dir_ai)
 
     real_counts = Counter(real_tags)
-    # ai_counts = Counter(ai_tags)
+    ai_counts = Counter(ai_tags)
 
-    all_tags = set(real_counts.keys())# | set(ai_counts.keys())
+    all_tags = set(real_counts.keys()) | set(ai_counts.keys())
     data_to_insert = []
     for tag in all_tags:
         rf = real_counts[tag]
-        af = 0 # ai_counts[tag]
+        af = ai_counts[tag]
         diff = rf - af
         ratio = (rf + 1) / (af + 1)
         data_to_insert.append((tag, rf, af, diff, ratio))
@@ -70,7 +70,7 @@ def analyze_tag_frequencies_sql(dataset_dir_real, dataset_dir_ai, db_path="tags.
     conn.close()
     print(f"[INFO] Saved {len(data_to_insert)} tags to {db_path}")
 
-def get_top_tags(db_path="tags.db", top_n=100):
+def get_top_tags(db_path="tags.db", top_n=10):
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
     cur.execute("""
@@ -82,7 +82,7 @@ def get_top_tags(db_path="tags.db", top_n=100):
     conn.close()
     return top_tags
 
-def is_ai_statistical_sql(metadata, db_path="tags.db", top_n=100):
+def is_ai_statistical_sql(metadata, db_path="tags.db", top_n=10):
     top_tags = get_top_tags(db_path, top_n)
     present_tags = set(metadata.keys())
     overlap = present_tags & set(top_tags)
@@ -121,3 +121,10 @@ async def analyze_image(request: Request, file: UploadFile = File(...)):
         return templates.TemplateResponse("index.html", {"request": request, "result": result})
     finally:
         tmp_path.unlink(missing_ok=True)
+
+### FOR TESTING PURPOSES ###
+from random import random
+
+@app.get("/make-decision")
+def analyze_metadata():
+    return {"probability_of_ai": random()}

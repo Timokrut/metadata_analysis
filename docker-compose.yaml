@@ -1,38 +1,46 @@
 services:
   metadata-analysis:
     build: ./
-    command: uvicorn server:app --host 0.0.0.0 --port 8888 
+    command: uvicorn server:app --host 0.0.0.0 --port 8000 
+    ports: 
+      - "8000:8000"
     volumes:
-      - ./metadata-analysis:/app
+      - ./:/app
     environment:
       SOMETHING: data
 
   video-analysis:
-    build: 
-    command: 
+    build: ./video_analysis 
+    command: uvicorn main:app --host 0.0.0.0 --port 8001 
+    ports: 
+      - "8001:8001"
     volumes:
-      - ./video-analysis:/app
+      - ./video_analysis:/app
     environment: 
       SOMETHING: data
 
   audio-analysis:
-    build: 
-    command: 
+    build: ./audio_analysis 
+    command: uvicorn main:app --host 0.0.0.0 --port 8002 
+    ports: 
+      - "8002:8002"
     volumes:
-      - ./audio-analysis:/app
+      - ./audio_analysis:/app
       - /mnt/logs:/var/logs/futureslogs
     environment: 
       SOMETHING: data
 
   decision_block: 
-    build: 
-    command: 
+    build: ./decision_block
+    command: uvicorn main:app --host 0.0.0.0 --port 8003 
     volumes:
       - ./decision_block:/app
     environment: 
-      SOMETHING: data
+      META_LINK : http://metadata-analysis:8000/make-decision
+      VIDEO_LINK: http://video-analysis:8001/make-decision 
+      AUDIO_LINK: http://audio-analysis:8002/make-decision 
     ports: 
-      - "8000:8000"
+      - "8003:8003"
     depends_on: 
       - metadata-analysis 
       - video-analysis
