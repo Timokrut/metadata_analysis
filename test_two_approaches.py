@@ -81,15 +81,41 @@ def is_ai_statistical_sql(metadata, db_path="tags.db", top_n=100):
     is_ai = score < 0.3
     return is_ai, f"Tag overlap score={score:.2f}"
 
+def validate_dataset(validate_dir, db_path="tags.db", results_table="validation_results"):
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+
+    cur.execute(f"""
+        CREATE TABLE IF NOT EXISTS {results_table} (
+            FilePath TEXT PRIMARY KEY,
+            IsAI INTEGER,
+            Score REAL,
+            Comment TEXT
+        )
+    """)
+
+    # получаем список файлов
+    files = list(Path(validate_dir).glob("**/*.*"))
+    print(f"[INFO] Found {len(files)} files to check")
+
+    data_to_insert = []
+
+    for f in files:
+        md = get_metadata(f)
+        is_ai, comment = is_ai_statistical_sql(md, db_path=db_path, top_n=10)
+        score = float(comment.split("=")[-1]) 
+
+        data_to_insert.append((str(f), int(is_ai), score, comment))
+
+    cur.executemany(f"""
+        INSERT OR REPLACE INTO {results_table} (FilePath, IsAI, Score, Comment)
+        VALUES (?, ?, ?, ?)
+    """, data_to_insert)
+
+    conn.commit()
+    conn.close()
+    print(f"[INFO] Saved {len(data_to_insert)} results to table {results_table}")
+
+
 if __name__ == "__main__":
-    # meta1 = get_metadata("ai_generated.png")
-    # meta2 = get_metadata("not_ai_generated.HEIC")
-
-    # Statistical approach
-    df = analyze_tag_frequencies_sql("dataset/real", "dataset/ai")
-
- #    flag, reason = is_ai_statistical_sql(meta1)
- #    print(f"Statistical approach\nSuspicious: {flag}\nReason:{reason}")
- # 
- #    flag, reason = is_ai_statistical_sql(meta2)
- #    print(f"Statistical approach\nSuspicious: {flag}\nReason:{reason}")
+    validate_dataset("/home/user/Coding/metadata_analysis/dataset/images")
