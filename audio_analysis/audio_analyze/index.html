@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audio Uploader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px auto;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        input[type=submit], button {
+            padding: 0.5em 1em;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        pre {
+            background-color: #fafafa;
+            padding: 1em;
+            overflow-x: scroll;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Загрузка аудиофайла</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="file" accept="audio/wav"/>
+        <button type="submit">Отправить</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(event){
+            event.preventDefault();
+
+            const formData = new FormData(this);
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                let output = '<pre>';
+
+                if ('error' in data) {
+                    output += `<span style="color: red;">Ошибка: ${data.error}</span>`;
+                } else {
+                    output += `<br/>${data.score}`;
+                    output += `<br/>${data.T_max}`;
+                    output += `<br/>${data.T_avg}`;
+                    output += `<br/>${data.S_max}`;
+                    output += `<br/>${data.S_avg}`;
+                }
+
+                output += '</pre>';
+                document.getElementById('result').innerHTML = output;
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+version: "3.9"
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: mesonet-ffpp:latest
+    container_name: mesonet-ffpp
+    working_dir: /workspace
+    volumes:
+      - ./data:/workspace/data
+      - ./outputs:/workspace/outputs
+      - ./checkpoints:/workspace/checkpoints
+      - ./logs:/workspace/logs
+      - ./configs:/workspace/configs
+      - ./:/workspace
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - CUDA_VISIBLE_DEVICES=0
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: ["gpu"]
+    ipc: host
+    command: ["--help"]
+
+  api:
+    build:
+      context: ./service
+      dockerfile: docker/Dockerfile.api
+    image: deepfake-detector-api:latest
+    environment:
+      - MODEL_PATH=/models/meso4.onnx
+    volumes:
+      - ./exports:/models:ro
+    ports:
+      - "8888:8888"
+    restart: unless-stopped
