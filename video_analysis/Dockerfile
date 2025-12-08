@@ -17,4 +17,4 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r /app/requirements.txt
 COPY server.py infer.py analysis.py model.onnx /app/
 EXPOSE 8888
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8888"]
+# CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8888"]

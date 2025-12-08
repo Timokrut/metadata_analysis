@@ -1,21 +1,18 @@
-from fastapi import FastAPI, UploadFile, File, Request, HTTPException
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from pathlib import Path
-from collections import Counter
-import subprocess
 import json
+import os
 import sqlite3
-import tempfile
-import shutil
-import sqlite3 
+import subprocess
+from collections import Counter
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException, Form
+from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
-templates = Jinja2Templates(directory="templates")
+SHARED_DATA_PATH = Path(os.getenv("SHARED_DATA_PATH", "/shared_data"))
 
 def get_metadata(path):
-    """Extract EXIF metadata from a file using exiftool."""
     result = subprocess.run(  # noqa: UP022
         ["exiftool/exiftool", "-j", str(path)],
         stdout=subprocess.PIPE,
@@ -92,19 +89,11 @@ def is_ai_statistical_sql(metadata, db_path="tags.db", top_n=10):
     return is_ai, f"Tag overlap score={score:.2f}"
 
 
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request, "result": None})
-
-
-@app.post("/analyze", response_class=HTMLResponse)
-async def analyze_image(request: Request, file: UploadFile = File(...)):
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
-        tmp_path = Path(tmp.name)
-        shutil.copyfileobj(file.file, tmp)
-
+@app.post("/analyze")
+async def analyze_image(file_path: str = Form(...)):
     try:
-        metadata = get_metadata(tmp_path)
+        metadata = get_metadata(file_path)
+        print(metadata)
         if not metadata:
             raise HTTPException(status_code=400, detail="No EXIF metadata found.")
 
@@ -112,19 +101,16 @@ async def analyze_image(request: Request, file: UploadFile = File(...)):
         preview_metadata = dict(list(metadata.items())[:10])
 
         result = {
-            "filename": file.filename,
+            "filename": file_path,
             "is_ai": is_ai,
             "explanation": explanation,
+            "probability_of_ai": explanation.split("=")[1],
             "metadata": preview_metadata
         }
 
-        return templates.TemplateResponse("index.html", {"request": request, "result": result})
-    finally:
-        tmp_path.unlink(missing_ok=True)
+        print(f"\n\n{result}")
+        return result
 
-### FOR TESTING PURPOSES ###
-from random import random
-
-@app.get("/make-decision")
-def analyze_metadata():
-    return {"probability_of_ai": random()}
+    except Exception as e:
+        print(e)
+        return {"status": "failed", "data": e}

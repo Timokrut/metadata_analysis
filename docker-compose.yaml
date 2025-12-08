@@ -1,47 +1,50 @@
 services:
   metadata-analysis:
-    build: ./
+    build: ./metadata_analysis
     command: uvicorn server:app --host 0.0.0.0 --port 8000 
     ports: 
       - "8000:8000"
     volumes:
-      - ./:/app
+      - shared_data:/shared_data
     environment:
-      SOMETHING: data
+      SHARED_DATA_PATH: /shared_data
 
   video-analysis:
     build: ./video_analysis 
-    command: uvicorn main:app --host 0.0.0.0 --port 8001 
+    command: uvicorn server:app --host 0.0.0.0 --port 8888
     ports: 
-      - "8001:8001"
+      - "8888:8888"
     volumes:
-      - ./video_analysis:/app
+      - shared_data:/shared_data
     environment: 
-      SOMETHING: data
+      SHARED_DATA_PATH: /shared_data
 
   audio-analysis:
     build: ./audio_analysis 
-    command: uvicorn main:app --host 0.0.0.0 --port 8002 
+    command: python app.py
     ports: 
-      - "8002:8002"
+      - "5000:5000"
     volumes:
-      - ./audio_analysis:/app
-      - /mnt/logs:/var/logs/futureslogs
+      - shared_data:/shared_data
     environment: 
-      SOMETHING: data
+      SHARED_DATA_PATH: /shared_data
 
   decision_block: 
     build: ./decision_block
     command: uvicorn main:app --host 0.0.0.0 --port 8003 
     volumes:
-      - ./decision_block:/app
+      - shared_data:/shared_data
     environment: 
-      META_LINK : http://metadata-analysis:8000/make-decision
-      VIDEO_LINK: http://video-analysis:8001/make-decision 
-      AUDIO_LINK: http://audio-analysis:8002/make-decision 
+      META_LINK : http://metadata-analysis:8000
+      VIDEO_LINK: http://video-analysis:8888 
+      AUDIO_LINK: http://audio-analysis:5000 
+      SHARED_DATA_PATH: /shared_data
     ports: 
       - "8003:8003"
     depends_on: 
       - metadata-analysis 
       - video-analysis
       - audio-analysis
+
+volumes:
+  shared_data:

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Content Detector</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-robot"></i> AI Content Detector</h1>
+            <p class="subtitle">Загрузите файл и запустите анализ по разным модулям</p>
+        </header>
+
+        <main>
+            <!-- Секция загрузки файла -->
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <h3>Перетащите файл сюда</h3>
+                    <p>или нажмите для выбора файла</p>
+                    <p class="file-types">Поддерживаемые форматы: JPG, PNG, MP4, MP3, WAV, AVI</p>
+                    <input type="file" id="fileInput" accept="image/*,video/*,audio/*">
+                </div>
+                
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <h3><i class="fas fa-file-alt"></i> Информация о файле</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Имя файла:</span>
+                            <span class="info-value" id="fileName"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Размер:</span>
+                            <span class="info-value" id="fileSize"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">ID:</span>
+                            <span class="info-value" id="fileId"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Статус:</span>
+                            <span class="info-value status-uploaded" id="fileStatus">Загружен</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Секция анализа -->
+            <div class="analysis-controls" id="analysisControls" style="display: none;">
+                <h3><i class="fas fa-play-circle"></i> Запуск анализа</h3>
+                <p class="section-description">Запустите анализ по каждому модулю отдельно или все сразу</p>
+                
+                <div class="buttons-grid">
+                    <button class="analyze-btn metadata-btn" onclick="analyzeMetadata()">
+                        <i class="fas fa-tags"></i>
+                        <span>Анализ метаданных</span>
+                    </button>
+                    
+                    <button class="analyze-btn video-btn" onclick="analyzeVideo()">
+                        <i class="fas fa-video"></i>
+                        <span>Видеоанализ</span>
+                    </button>
+                    
+                    <button class="analyze-btn audio-btn" onclick="analyzeAudio()">
+                        <i class="fas fa-volume-up"></i>
+                        <span>Аудиоанализ</span>
+                    </button>
+                    
+                    <button class="analyze-btn all-btn" onclick="analyzeAll()">
+                        <i class="fas fa-bolt"></i>
+                        <span>Запустить всё</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Секция результатов -->
+            <div class="results-section">
+                <h3><i class="fas fa-chart-bar"></i> Результаты анализа</h3>
+                
+                <div class="services-grid" id="resultsGrid">
+                    <!-- Метаданные -->
+                    <div class="service-card" id="metadataCard">
+                        <div class="card-header">
+                            <div class="service-icon metadata">
+                                <i class="fas fa-tags"></i>
+                            </div>
+                            <h4>Метаданные</h4>
+                            <div class="status-badge" id="metadataStatus">Ожидание</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="probability-display" id="metadataProbability">-</div>
+                            <div class="result-details" id="metadataDetails">
+                                Нажмите кнопку для запуска анализа
+                            </div>
+                            <div class="time-info" id="metadataTime"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Видео -->
+                    <div class="service-card" id="videoCard">
+                        <div class="card-header">
+                            <div class="service-icon video">
+                                <i class="fas fa-video"></i>
+                            </div>
+                            <h4>Видеоанализ</h4>
+                            <div class="status-badge" id="videoStatus">Ожидание</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="probability-display" id="videoProbability">-</div>
+                            <div class="result-details" id="videoDetails">
+                                Нажмите кнопку для запуска анализа
+                            </div>
+                            <div class="time-info" id="videoTime"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Аудио -->
+                    <div class="service-card" id="audioCard">
+                        <div class="card-header">
+                            <div class="service-icon audio">
+                                <i class="fas fa-volume-up"></i>
+                            </div>
+                            <h4>Аудиоанализ</h4>
+                            <div class="status-badge" id="audioStatus">Ожидание</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="probability-display" id="audioProbability">-</div>
+                            <div class="result-details" id="audioDetails">
+                                Нажмите кнопку для запуска анализа
+                            </div>
+                            <div class="time-info" id="audioTime"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Итоговый результат -->
+                <div class="final-result" id="finalResult" style="display: none;">
+                    <div class="final-header">
+                        <h4><i class="fas fa-flag-checkered"></i> Итоговый вердикт</h4>
+                        <div class="confidence">
+                            <span>Доверие:</span>
+                            <span class="confidence-value" id="confidenceValue">0%</span>
+                        </div>
+                    </div>
+                    <div class="final-body">
+                        <div class="verdict">
+                            <span class="verdict-label">Результат:</span>
+                            <span class="verdict-value" id="verdictText">НЕ ОПРЕДЕЛЕНО</span>
+                        </div>
+                        <div class="probabilities-summary">
+                            <h5>Детальные вероятности:</h5>
+                            <div class="prob-list">
+                                <div class="prob-item">
+                                    <span>Метаданные:</span>
+                                    <span class="prob-value" id="finalMetadataProb">-</span>
+                                </div>
+                                <div class="prob-item">
+                                    <span>Видео:</span>
+                                    <span class="prob-value" id="finalVideoProb">-</span>
+                                </div>
+                                <div class="prob-item">
+                                    <span>Аудио:</span>
+                                    <span class="prob-value" id="finalAudioProb">-</span>
+                                </div>
+                                <div class="prob-item avg">
+                                    <span>Среднее:</span>
+                                    <span class="prob-value" id="finalAvgProb">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="reset-btn" onclick="resetAnalysis()">
+                            <i class="fas fa-redo"></i> Анализировать другой файл
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <div class="system-status">
+                    <span>Статус системы:</span>
+                    <span class="status-indicator" id="systemStatus">
+                        <i class="fas fa-circle"></i> Проверка...
+                    </span>
+                </div>
+                <p>AI Content Detection System v1.0</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

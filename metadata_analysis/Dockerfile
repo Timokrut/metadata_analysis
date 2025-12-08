@@ -8,11 +8,8 @@ WORKDIR /app
 RUN pip install --upgrade pip
 RUN pip install "fastapi[standard]"
 RUN pip install requests
-RUN git clone https://github.com/exiftool/exiftool
+RUN git clone https://github.com/exiftool/exiftool.git 
 
-COPY ./download_data.py ./server.py ./tags.db ./
-
-RUN mkdir -p templates 
-COPY ./templates/index.html ./templates
+COPY server.py tags.db ./
 
 # CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8888"]
