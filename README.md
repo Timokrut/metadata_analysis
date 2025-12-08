@@ -9,7 +9,7 @@ git clone https://github.com/Timokrut/metadata_analysis.git
 cd metadata_analysis
 ```
 
-3. Сбилдить и поднять образ
+3. Сбилдить и поднять приложение
 ```bash
 docker-compose up -d --build
 ```
