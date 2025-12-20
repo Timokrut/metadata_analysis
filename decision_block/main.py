@@ -134,6 +134,15 @@ async def analyze_audio(file_id: str):
     
     file_info = uploaded_files[file_id]
     file_path = Path(file_info["file_path"])
+
+    file_path = convert_video_to_wav_ffmpeg(file_path)
+    if not file_path:
+        return JSONResponse({
+            "service": "audio",
+            "file_id": file_id,
+            "error": "Can't convert file to .wav",
+            "status": "error"
+        }, status_code=500)
     
     try:
         response = requests.post(
@@ -244,3 +253,65 @@ async def delete_file(file_id: str):
         "file_id": file_id,
         "message": "File deleted successfully"
     })
+
+import subprocess
+def convert_video_to_wav_ffmpeg(video_path, output_path=None):
+    # Проверяем наличие ffmpeg
+    try:
+        subprocess.run(["ffmpeg", "-version"], 
+                      capture_output=True, 
+                      check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print("❌ Ошибка: FFmpeg не установлен или не найден в PATH!")
+        print("Установите FFmpeg: https://ffmpeg.org/download.html")
+        return False
+    
+    # Проверяем исходный файл
+    video_path = Path(video_path)
+    if not video_path.exists():
+        print(f"❌ Файл '{video_path}' не найден!")
+        return False
+    
+    # Определяем выходной файл
+    if output_path is None:
+        output_path = video_path.with_suffix('.wav')
+    else:
+        output_path = Path(output_path)
+        if output_path.suffix == '':
+            output_path = output_path / video_path.with_suffix('.wav').name
+    
+    # Команда FFmpeg для конвертации
+    cmd = [
+        'ffmpeg',
+        '-i', str(video_path),      # Входной файл
+        '-vn',                       # Без видео
+        '-acodec', 'pcm_s16le',     # Кодек для WAV
+        '-ar', '44100',             # Частота дискретизации
+        '-ac', '2',                 # Стерео
+        '-y',                       # Перезаписать если файл существует
+        str(output_path)
+    ]
+    
+    try:
+        print(f"🔄 Конвертируем {video_path.name} в WAV...")
+        
+        # Запускаем конвертацию
+        result = subprocess.run(cmd, 
+                              capture_output=True, 
+                              text=True,
+                              check=True)
+        
+        # Проверяем результат
+        if output_path.exists() and output_path.stat().st_size > 0:
+            print(f"✅ Успешно создан: {output_path}")
+            return output_path 
+        else:
+            print("❌ Ошибка: Выходной файл не создан или пустой")
+            return False
+            
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Ошибка FFmpeg: {e.stderr}")
+        return False
+    except Exception as e:
+        print(f"❌ Неизвестная ошибка: {e}")
+        return False
