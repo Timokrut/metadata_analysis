@@ -211,7 +211,7 @@ async function runAnalysis(serviceName, endpoint) {
         );
         
         // Устанавливаем вероятность по умолчанию
-        analysisResults[serviceName] = { probability_of_ai: 0.5 };
+        analysisResults[serviceName] = { probability_of_ai: 0.0 };
     }
 }
 
@@ -266,21 +266,21 @@ function calculateFinalResult() {
         analysisResults.audio.probability_of_ai
     ];
     
-    const avgProbability = probabilities.reduce((a, b) => a + b, 0) / probabilities.length;
+    const avgProbability = (Number(probabilities[0]) + Number(probabilities[1]) + Number(probabilities[2])) / 3;
     
     // Определяем вердикт
     const isAI = avgProbability > 0.3;
-    const verdict = isAI ? 'AI' : 'NOT AI';
+    const verdict = isAI ? 'NOT AI' : 'AI';
     
     // Обновляем отображение
     document.getElementById('finalMetadataProb').textContent = 
-        `${(analysisResults.metadata.probability_of_ai * 100).toFixed(1)}%`;
+        `${(probabilities[0] * 100).toFixed(1)}%`;
     
     document.getElementById('finalVideoProb').textContent = 
-        `${(analysisResults.video.probability_of_ai * 100).toFixed(1)}%`;
+        `${(probabilities[1] * 100).toFixed(1)}%`;
     
     document.getElementById('finalAudioProb').textContent = 
-        `${(analysisResults.audio.probability_of_ai * 100).toFixed(1)}%`;
+        `${(probabilities[2] * 100).toFixed(1)}%`;
     
     document.getElementById('finalAvgProb').textContent = 
         `${(avgProbability * 100).toFixed(1)}%`;
@@ -289,7 +289,9 @@ function calculateFinalResult() {
         `${(avgProbability * 100).toFixed(1)}%`;
     
     document.getElementById('verdictText').textContent = verdict;
-    document.getElementById('verdictText').className = `verdict-value ${verdict.toLowerCase()}`;
+
+    const verd = isAI ? 'not-ai' : 'ai';
+    document.getElementById('verdictText').className = `verdict-value ${verd}`;
     
     // Показываем итоговый результат
     document.getElementById('finalResult').style.display = 'block';
@@ -374,21 +376,13 @@ async function checkSystemHealth() {
                           Object.values(data.services).every(v => v === true);
         
         if (allHealthy) {
-            statusEl.innerHTML = '<i class="fas fa-circle"></i> Все системы работают';
-            icon.style.color = '#28a745';
-            statusEl.className = 'status-indicator';
+            allHealthy = true;
         } else {
-            statusEl.innerHTML = '<i class="fas fa-circle"></i> Некоторые сервисы недоступны';
-            icon.style.color = '#dc3545';
-            statusEl.className = 'status-indicator offline';
+            allHealthy = false;
         }
         
     } catch (error) {
         console.error('Health check error:', error);
-        const statusEl = document.getElementById('systemStatus');
-        statusEl.innerHTML = '<i class="fas fa-circle"></i> Ошибка подключения';
-        statusEl.querySelector('.fa-circle').style.color = '#dc3545';
-        statusEl.className = 'status-indicator offline';
     }
 }
 

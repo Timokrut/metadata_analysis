@@ -50,6 +50,7 @@ def get_clip():
     if _clip_model is None and os.environ.get("ENABLE_CLIP", "1") == "1":
         _clip_model, _clip_preprocess, _clip_device = maybe_load_clip()
     return _clip_model, _clip_preprocess, _clip_device
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}

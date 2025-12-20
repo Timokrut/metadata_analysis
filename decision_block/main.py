@@ -191,7 +191,7 @@ async def analyze_all(file_id: str):
                 prob = results[service]["result"].get("probability_of_ai")
                 probabilities.append(prob)
             else:
-                probabilities.append(0.5)
+                probabilities.append(0)
         
         avg_probability = sum(probabilities) / len(probabilities)
         final_decision = "AI" if avg_probability > 0.3 else "NOT AI"
