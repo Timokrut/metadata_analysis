@@ -1,0 +1,42 @@
+{
+  "filename": "/tmp/image.jpg",
+  "analysis": {
+    "is_ai": true,
+    "scores": {
+      "tag_count": 28,
+      "real_overlap_score": 0.0,
+      "ai_overlap_score": 0.0
+    },
+    "top_tags_current_file": [
+      "FilePermissions",
+      "ExifToolVersion",
+      "FileAccessDate",
+      "JFIFVersion",
+      "ImageHeight",
+      "GrokImageUpsampledPrompt",
+      "XMPToolkit",
+      "YCbCrSubSampling",
+      "FileType",
+      "ImageSize"
+    ],
+    "overlap_tags": { "real_overlap_tags": [], "ai_overlap_tags": [] },
+    "special_metrics": {
+      "has_camera_metadata": false,
+      "software_flag": false,
+      "gps_present": false,
+      "timestamp_anomaly": false
+    }
+  },
+  "metadata_preview": {
+    "SourceFile": "/tmp/image.jpg",
+    "ExifToolVersion": 13.52,
+    "FileName": "image.jpg",
+    "Directory": "/tmp",
+    "FileSize": "374 kB",
+    "FileModifyDate": "2026:03:15 21:12:05+00:00",
+    "FileAccessDate": "2026:03:15 21:12:05+00:00",
+    "FileInodeChangeDate": "2026:03:15 21:12:05+00:00",
+    "FilePermissions": "-rw-r--r--",
+    "FileType": "JPEG"
+  }
+}

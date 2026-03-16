@@ -1,0 +1,56 @@
+{
+  "filename": "/tmp/test.jpeg",
+  "analysis": {
+    "is_ai": false,
+    "scores": {
+      "tag_count": 163,
+      "real_overlap_score": 1.0,
+      "ai_overlap_score": 0.0
+    },
+    "top_tags_current_file": [
+      "HDRGain",
+      "BlueTRC",
+      "DeviceAttributes",
+      "SensingMethod",
+      "LivePhotoVideoIndex",
+      "GPSAltitudeRef",
+      "OffsetTimeDigitized",
+      "MeteringMode",
+      "SceneCaptureType",
+      "SubjectArea"
+    ],
+    "overlap_tags": {
+      "real_overlap_tags": [
+        "LensInfo",
+        "HyperfocalDistance",
+        "MeteringMode",
+        "ExposureMode",
+        "CustomRendered",
+        "FOV",
+        "LensID",
+        "Flash",
+        "ScaleFactor35efl",
+        "CircleOfConfusion"
+      ],
+      "ai_overlap_tags": []
+    },
+    "special_metrics": {
+      "has_camera_metadata": true,
+      "software_flag": true,
+      "gps_present": true,
+      "timestamp_anomaly": false
+    }
+  },
+  "metadata_preview": {
+    "SourceFile": "/tmp/test.jpeg",
+    "ExifToolVersion": 13.52,
+    "FileName": "test.jpeg",
+    "Directory": "/tmp",
+    "FileSize": "14 MB",
+    "FileModifyDate": "2026:03:15 21:07:37+00:00",
+    "FileAccessDate": "2026:03:15 21:07:37+00:00",
+    "FileInodeChangeDate": "2026:03:15 21:07:37+00:00",
+    "FilePermissions": "-rw-r--r--",
+    "FileType": "JPEG"
+  }
+}
