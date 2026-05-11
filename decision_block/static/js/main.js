@@ -394,3 +394,36 @@ function formatFileSize(bytes) {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
+
+async function createQR() {
+    const response = await fetch('/qr/create', {
+        method: 'POST'
+    });
+
+    const data = await response.json();
+    document.getElementById('qrContainer').innerHTML = `
+        <img src="${data.qr_image}" width="250">
+    `;
+
+    checkQRUpload(data.session_id);
+}
+
+async function checkQRUpload(sessionId) {
+    showUploadProgress(); // ? хз надо ли тут вообще это
+    const interval = setInterval(async () => {
+        const response = await fetch(`/qr/status/${sessionId}`);
+        const data = await response.json();
+
+        if (data.uploaded) {
+            clearInterval(interval);
+            currentFileId = data.file_id;
+            showAnalysisControls();
+            document.getElementById('fileInfo').style.display = 'block';
+            document.getElementById('fileName').textContent = data.filename;
+            document.getElementById('fileId').textContent = data.file_id;
+            document.getElementById('fileSize').textContent = formatFileSize(data.file_size);
+            alert("Файл загружен с телефона!");
+            hideUploadProgress();
+        }
+    }, 2000);
+}

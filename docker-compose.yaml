@@ -1,21 +1,23 @@
 services:
   metadata-analysis:
     build: ./metadata_analysis
-    command: uvicorn server:app --host 0.0.0.0 --port 8000 
+    command: uvicorn server:app --host 0.0.0.0 --port 8000 --reload 
     ports: 
       - "8000:8000"
     volumes:
       - shared_data:/shared_data
+      # - ./metadata_analysis:/app 
     environment:
       SHARED_DATA_PATH: /shared_data
 
   video-analysis:
     build: ./video_analysis 
-    command: uvicorn server:app --host 0.0.0.0 --port 8888
+    command: uvicorn server:app --host 0.0.0.0 --port 8888 --reload
     ports: 
       - "8888:8888"
     volumes:
       - shared_data:/shared_data
+      # - ./video_analysis:/app 
     environment: 
       SHARED_DATA_PATH: /shared_data
 
@@ -26,16 +28,18 @@ services:
       - "5000:5000"
     volumes:
       - shared_data:/shared_data
+      # - ./audio_analysis:/app
     environment: 
       SHARED_DATA_PATH: /shared_data
 
   decision_block: 
     build: ./decision_block
-    command: uvicorn main:app --host 0.0.0.0 --port 8003 
+    command: uvicorn main:app --host 0.0.0.0 --port 8003 --reload
     volumes:
       - shared_data:/shared_data
+      - ./decision_block:/app
     environment: 
-      META_LINK : http://metadata-analysis:8000
+      META_LINK: http://metadata-analysis:8000
       VIDEO_LINK: http://video-analysis:8888 
       AUDIO_LINK: http://audio-analysis:5000 
       SHARED_DATA_PATH: /shared_data

@@ -27,6 +27,13 @@
                     <input type="file" id="fileInput" accept="image/*,video/*,audio/*">
                 </div>
                 
+                <!-- TODO: Make it look prettier -->
+                <button onclick="createQR()">
+                    Upload via QR
+                </button>
+
+                <div id="qrContainer"></div>
+
                 <div class="file-info" id="fileInfo" style="display: none;">
                     <h3><i class="fas fa-file-alt"></i> Информация о файле</h3>
                     <div class="info-grid">

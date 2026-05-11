@@ -27,7 +27,11 @@ uploaded_files = {}
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={"request": request}
+    )
 
 @app.post("/upload/")
 async def upload_file(file: UploadFile = File(...)):
@@ -59,6 +63,212 @@ async def upload_file(file: UploadFile = File(...)):
         "size": file_size,
         "message": "File uploaded successfully"
     })
+
+import qrcode
+
+qr_sessions = {}
+
+@app.post("/qr/create")
+async def create_qr():
+    session_id = str(uuid.uuid4())
+    upload_url = f"http://192.168.31.66:8003/mobile-upload/{session_id}"
+    qr_path = f"static/qr/{session_id}.png"
+
+    img = qrcode.make(upload_url)
+    img.save(qr_path)
+
+    qr_sessions[session_id] = {
+        "uploaded": False,
+        "file_id": None
+    }
+
+    return {
+        "session_id": session_id,
+        "upload_url": upload_url,
+        "qr_image": f"/{qr_path}"
+    }
+
+@app.get("/mobile-upload/{session_id}", response_class=HTMLResponse)
+async def mobile_upload_page(session_id: str):
+    return f"""
+    <html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+        <style>
+            * {{
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }}
+            
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 20px;
+            }}
+            
+            .container {{
+                background: white;
+                border-radius: 20px;
+                padding: 30px 25px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                width: 100%;
+                max-width: 500px;
+            }}
+            
+            h2 {{
+                color: #333;
+                text-align: center;
+                margin-bottom: 30px;
+                font-size: 28px;
+                font-weight: 600;
+            }}
+            
+            form {{
+                display: flex;
+                flex-direction: column;
+                gap: 25px;
+            }}
+            
+            input[type="file"] {{
+                padding: 20px 15px;
+                font-size: 18px;
+                border: 2px dashed #ccc;
+                border-radius: 12px;
+                background: #f9f9f9;
+                cursor: pointer;
+                width: 100%;
+                transition: all 0.3s ease;
+            }}
+            
+            input[type="file"]:hover {{
+                border-color: #667eea;
+                background: #f0f0f0;
+            }}
+            
+            button {{
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                padding: 18px;
+                font-size: 20px;
+                font-weight: 600;
+                border-radius: 12px;
+                cursor: pointer;
+                transition: transform 0.2s, box-shadow 0.2s;
+                width: 100%;
+            }}
+            
+            button:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            }}
+            
+            button:active {{
+                transform: translateY(0);
+            }}
+            
+            @media (max-width: 480px) {{
+                .container {{
+                    padding: 25px 20px;
+                }}
+                
+                h2 {{
+                    font-size: 24px;
+                    margin-bottom: 25px;
+                }}
+                
+                input[type="file"] {{
+                    padding: 18px 12px;
+                    font-size: 16px;
+                }}
+                
+                button {{
+                    padding: 16px;
+                    font-size: 18px;
+                }}
+            }}
+        </style>
+    </head>
+    
+    <body>
+        <div class="container">
+            <h2>Upload photo</h2>
+            
+            <form action="/mobile-upload/{session_id}" 
+                  enctype="multipart/form-data" 
+                  method="post">
+                
+                <input type="file" 
+                       name="file" 
+                       accept="image/*,video/*,audio/*">
+                
+                <button type="submit">Upload</button>
+            </form>
+        </div>
+    </body>
+    </html>
+    """
+
+@app.post("/mobile-upload/{session_id}")
+async def mobile_upload(session_id: str, file: UploadFile = File(...)):
+    if session_id not in qr_sessions:
+        return JSONResponse(
+            {"error": "Invalid session"},
+            status_code=404
+        )
+
+    file_id = str(uuid.uuid4())
+
+    original_filename = file.filename
+    file_extension = Path(original_filename).suffix
+
+    saved_filename = f"{file_id}{file_extension}"
+
+    file_path = Path(SHARED_DATA_PATH) / saved_filename
+
+    file_size = 0 
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        file_size = buffer.tell()
+
+    uploaded_files[file_id] = {
+        "filename": file.filename,
+        "saved_filename": saved_filename,
+        "file_path": str(file_path),
+        "size": file_size,
+        "upload_time": os.path.getctime(file_path)
+    }
+
+    qr_sessions[session_id]["uploaded"] = True
+    qr_sessions[session_id]["file_id"] = file_id
+    qr_sessions[session_id]["file_size"] = file_size
+
+    return HTMLResponse("""
+        <h2>Файл успешно загружен</h2>
+    """)
+
+@app.get("/qr/status/{session_id}")
+async def qr_status(session_id: str):
+
+    if session_id not in qr_sessions:
+        return JSONResponse(
+            {"error": "Session not found"},
+            status_code=404
+        )
+
+    return {
+        "uploaded": qr_sessions[session_id]["uploaded"],
+        "file_id": qr_sessions[session_id]["file_id"],
+        "file_size": qr_sessions[session_id]["file_size"],
+        "filename": uploaded_files[
+            qr_sessions[session_id]["file_id"]
+        ]["filename"] if qr_sessions[session_id]["file_id"] else None
+    }
 
 @app.get("/analyze/metadata/{file_id}")
 async def analyze_metadata(file_id: str):

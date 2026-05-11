@@ -7,5 +7,6 @@ WORKDIR /app
 RUN pip install --upgrade pip
 RUN pip install "fastapi[standard]"
 RUN pip install requests
+RUN pip install qrcode[pil]
 
 COPY . .
