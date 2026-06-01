@@ -184,9 +184,15 @@ async function runAnalysis(serviceName, endpoint) {
             analysisResults[serviceName] = data.result;
             
             // Извлекаем вероятность AI и объяснение через адаптер
-            const { aiProbability, explanation } = extractServiceResult(serviceName, data.result);
+            const { realProbability, explanation } = extractServiceResult(serviceName, data.result);
             
-            const probPercent = (aiProbability * 100).toFixed(1);
+            const probPercent = (Number(realProbability) * 100).toFixed(1);
+
+            console.log(serviceName)
+            console.log(realProbability);
+            console.log(explanation);
+            console.log(probPercent);
+
             updateServiceDisplay(
                 serviceName,
                 'success',
