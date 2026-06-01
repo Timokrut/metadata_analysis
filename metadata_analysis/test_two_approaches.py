@@ -7,7 +7,7 @@ import sqlite3
 def get_metadata(path):
     """Extract EXIF metadata from a file using exiftool."""
     result = subprocess.run(  # noqa: UP022
-        ["exiftool", "-j", str(path)],
+        ["exiftool/exiftool", "-j", str(path)],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True
@@ -118,4 +118,5 @@ def validate_dataset(validate_dir, db_path="tags.db", results_table="validation_
 
 
 if __name__ == "__main__":
-    validate_dataset("/home/user/Coding/metadata_analysis/dataset/images")
+    analyze_tag_frequencies_sql(dataset_dir_real="./real", dataset_dir_ai="./ai", db_path="video_tags.db")
+    # validate_dataset("/home/user/Coding/metadata_analysis/dataset/images")
