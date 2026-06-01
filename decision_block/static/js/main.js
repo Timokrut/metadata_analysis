@@ -171,48 +171,64 @@ async function runAnalysis(serviceName, endpoint) {
     const startTime = Date.now();
     
     try {
-        // Обновляем статус
         updateServiceDisplay(serviceName, 'processing', '-', 'Анализ выполняется...');
         
-        // Отправляем запрос
         const response = await fetch(endpoint);
-        const result = await response.json();
+        const data = await response.json();
         
         const endTime = Date.now();
         const duration = ((endTime - startTime) / 1000).toFixed(2);
         
-        if (response.ok && result.status === 'success') {
-            // Сохраняем результат
-            analysisResults[serviceName] = result.result;
+        if (data.status === 'success') {
+            // Сохраняем сырой результат
+            analysisResults[serviceName] = data.result;
             
-            // Обновляем отображение
-            const probability = result.result.probability_of_ai * 100;
+            // Извлекаем вероятность AI и объяснение через адаптер
+            const { aiProbability, explanation } = extractServiceResult(serviceName, data.result);
+            
+            const probPercent = (aiProbability * 100).toFixed(1);
             updateServiceDisplay(
                 serviceName,
                 'success',
-                `${probability.toFixed(1)}%`,
-                result.result.explanation || 'Анализ завершен успешно'
+                `${probPercent}%`,
+                explanation || 'Анализ завершён'
             );
             
-            document.getElementById(`${serviceName}Time`).textContent = `Выполнено за ${duration} сек`;
-            
+            document.getElementById(`${serviceName}Time`).textContent = 
+                `Выполнено за ${duration} сек`;
         } else {
-            throw new Error(result.error || 'Неизвестная ошибка');
+            throw new Error(data.error || 'Неизвестная ошибка');
         }
-        
     } catch (error) {
         console.error(`${serviceName} analysis error:`, error);
-        
-        updateServiceDisplay(
-            serviceName,
-            'error',
-            'Ошибка',
-            error.message || 'Не удалось выполнить анализ'
-        );
-        
-        // Устанавливаем вероятность по умолчанию
-        analysisResults[serviceName] = { probability_of_ai: 0.0 };
+        updateServiceDisplay(serviceName, 'error', 'Ошибка', error.message);
+        analysisResults[serviceName] = null;
     }
+}
+
+function extractServiceResult(serviceName, result) {
+    // Если сервис вернул результат в новом формате (с полем ai_probability и real_probability)
+    if (result && typeof result.ai_probability === 'number') {
+        const aiProb = result.ai_probability;
+        // Собираем понятное объяснение из ключевых полей
+        const details = [];
+        if (result.camera_score !== undefined) details.push(`📷 Камера: ${(result.camera_score*100).toFixed(0)}%`);
+        if (result.gps_score !== undefined) details.push(`🌍 GPS: ${(result.gps_score*100).toFixed(0)}%`);
+        if (result.ai_software_score !== undefined) details.push(`🤖 AI ПО: ${(result.ai_software_score*100).toFixed(0)}%`);
+        const explanation = details.join(' | ') || `Вердикт: ${result.verdict || '—'}`;
+        return { aiProbability: aiProb, explanation };
+    }
+    
+    // Старый формат (видео/аудио пока могут возвращать probability_of_ai)
+    if (result && typeof result.probability_of_ai === 'number') {
+        return {
+            aiProbability: result.probability_of_ai,
+            explanation: result.explanation || ''
+        };
+    }
+    
+    // Заглушка, если результат отсутствует
+    return { aiProbability: 0.0, explanation: 'Нет данных' };
 }
 
 // Обновление отображения сервиса
@@ -252,48 +268,31 @@ function getStatusText(status) {
 
 // Вычисление итогового результата
 function calculateFinalResult() {
-    // Проверяем, что все анализы выполнены
-    const allDone = ['metadata', 'video', 'audio'].every(
-        service => analysisResults[service]
-    );
-    
+    const services = ['metadata', 'video', 'audio'];
+    const allDone = services.every(s => analysisResults[s] !== null && analysisResults[s] !== undefined);
     if (!allDone) return;
     
-    // Вычисляем среднюю вероятность
-    const probabilities = [
-        analysisResults.metadata.probability_of_ai,
-        analysisResults.video.probability_of_ai,
-        analysisResults.audio.probability_of_ai
-    ];
+    // Извлекаем AI-вероятности
+    const probs = services.map(s => extractServiceResult(s, analysisResults[s]).aiProbability);
     
-    const avgProbability = (Number(probabilities[0]) + Number(probabilities[1]) + Number(probabilities[2])) / 3;
+    // Средняя вероятность AI
+    const avgAI = probs.reduce((a, b) => a + b, 0) / probs.length;
     
-    // Определяем вердикт
-    const isAI = avgProbability > 0.3;
+    // Вердикт: если средняя AI-вероятность >= 0.5, считаем AI
+    const isAI = avgAI > 0.3;
     const verdict = isAI ? 'NOT AI' : 'AI';
     
-    // Обновляем отображение
-    document.getElementById('finalMetadataProb').textContent = 
-        `${(probabilities[0] * 100).toFixed(1)}%`;
+    // Заполняем интерфейс
+    document.getElementById('finalMetadataProb').textContent = `${(probs[0] * 100).toFixed(1)}%`;
+    document.getElementById('finalVideoProb').textContent = `${(probs[1] * 100).toFixed(1)}%`;
+    document.getElementById('finalAudioProb').textContent = `${(probs[2] * 100).toFixed(1)}%`;
+    document.getElementById('finalAvgProb').textContent = `${(avgAI * 100).toFixed(1)}%`;
+    document.getElementById('confidenceValue').textContent = `${(avgAI * 100).toFixed(1)}%`;
     
-    document.getElementById('finalVideoProb').textContent = 
-        `${(probabilities[1] * 100).toFixed(1)}%`;
+    const verdictEl = document.getElementById('verdictText');
+    verdictEl.textContent = verdict;
+    verdictEl.className = `verdict-value ${isAI ? 'ai' : 'real'}`;
     
-    document.getElementById('finalAudioProb').textContent = 
-        `${(probabilities[2] * 100).toFixed(1)}%`;
-    
-    document.getElementById('finalAvgProb').textContent = 
-        `${(avgProbability * 100).toFixed(1)}%`;
-    
-    document.getElementById('confidenceValue').textContent = 
-        `${(avgProbability * 100).toFixed(1)}%`;
-    
-    document.getElementById('verdictText').textContent = verdict;
-
-    const verd = isAI ? 'not-ai' : 'ai';
-    document.getElementById('verdictText').className = `verdict-value ${verd}`;
-    
-    // Показываем итоговый результат
     document.getElementById('finalResult').style.display = 'block';
     document.getElementById('finalResult').scrollIntoView({ behavior: 'smooth' });
 }
