@@ -279,9 +279,9 @@ def compute_timestamp_score(metadata_ext: Dict[str, Any]) -> float:
 # Главный анализ
 # ======================================================
 @app.post("/analyze")
-async def analyze_image(path: str = Form(...)):
-    metadata_ext = get_extended_metadata(path)   # с группами
-    metadata_flat = get_metadata(path)           # плоский
+async def analyze_image(file_path: str = Form(...)):
+    metadata_ext = get_extended_metadata(file_path)   # с группами
+    metadata_flat = get_metadata(file_path)           # плоский
 
     contributions, statistical_score = calculate_metadata_likelihood(metadata_flat)
     statistical_score_norm = normalize_statistical_score(statistical_score)
