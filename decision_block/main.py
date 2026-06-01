@@ -71,7 +71,7 @@ qr_sessions = {}
 @app.post("/qr/create")
 async def create_qr():
     session_id = str(uuid.uuid4())
-    upload_url = f"http://192.168.31.66:8003/mobile-upload/{session_id}"
+    upload_url = f"https://timokrut.ertert.ru/mobile-upload/{session_id}"
     qr_path = f"static/qr/{session_id}.png"
 
     img = qrcode.make(upload_url)
@@ -264,7 +264,8 @@ async def qr_status(session_id: str):
     return {
         "uploaded": qr_sessions[session_id]["uploaded"],
         "file_id": qr_sessions[session_id]["file_id"],
-        "file_size": qr_sessions[session_id]["file_size"],
+        # "file_size": qr_sessions[session_id]["file_size"],
+        "file_size": qr_sessions[session_id].get("file_size"), 
         "filename": uploaded_files[
             qr_sessions[session_id]["file_id"]
         ]["filename"] if qr_sessions[session_id]["file_id"] else None
@@ -386,13 +387,18 @@ async def analyze_all(file_id: str):
     results = {}
     
     try:
-        metadata_result = await analyze_metadata(file_id)
+        metadata_result, video_result, audio_result = await asyncio.gather(
+             analyze_metadata(file_id),
+             analyze_video(file_id),
+             analyze_audio(file_id)
+        )
+        # metadata_result = await analyze_metadata(file_id)
         results["metadata"] = json.loads(metadata_result.body)
-        
-        video_result = await analyze_video(file_id)
+        # 
+        # video_result = await analyze_video(file_id)
         results["video"] = json.loads(video_result.body)
-        
-        audio_result = await analyze_audio(file_id)
+        # 
+        # audio_result = await analyze_audio(file_id)
         results["audio"] = json.loads(audio_result.body)
         
         probabilities = []

@@ -2,30 +2,38 @@ services:
   metadata-analysis:
     build: ./metadata_analysis
     command: uvicorn server:app --host 0.0.0.0 --port 8000 --reload 
-    ports: 
-      - "8000:8000"
+    expose: 
+      - "8000"
+    networks:
+      - common_network
     volumes:
       - shared_data:/shared_data
       # - ./metadata_analysis:/app 
     environment:
       SHARED_DATA_PATH: /shared_data
+    restart: always
 
   video-analysis:
     build: ./video_analysis 
     command: uvicorn server:app --host 0.0.0.0 --port 8888 --reload
-    ports: 
-      - "8888:8888"
+    expose: 
+      - "8888"
+    networks:
+      - common_network
     volumes:
       - shared_data:/shared_data
-      # - ./video_analysis:/app 
+      - ./video_analysis:/app 
+    restart: always
     environment: 
       SHARED_DATA_PATH: /shared_data
-
+      ENABLE_CLIP: 0
   audio-analysis:
     build: ./audio_analysis 
     command: python app.py
-    ports: 
-      - "5000:5000"
+    expose: 
+      - "5000"
+    networks:
+      - common_network
     volumes:
       - shared_data:/shared_data
       # - ./audio_analysis:/app
@@ -38,13 +46,16 @@ services:
     volumes:
       - shared_data:/shared_data
       - ./decision_block:/app
+    networks:
+      - common_network
     environment: 
       META_LINK: http://metadata-analysis:8000
       VIDEO_LINK: http://video-analysis:8888 
       AUDIO_LINK: http://audio-analysis:5000 
       SHARED_DATA_PATH: /shared_data
-    ports: 
-      - "8003:8003"
+    expose: 
+      - "8003"
+    restart: always
     depends_on: 
       - metadata-analysis 
       - video-analysis
@@ -52,3 +63,7 @@ services:
 
 volumes:
   shared_data:
+
+networks:
+  common_network:
+    external: true 
