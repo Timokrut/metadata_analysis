@@ -184,12 +184,12 @@ async function runAnalysis(serviceName, endpoint) {
             analysisResults[serviceName] = data.result;
             
             // Извлекаем вероятность AI и объяснение через адаптер
-            const { realProbability, explanation } = extractServiceResult(serviceName, data.result);
+            const { ai_probability, explanation } = extractServiceResult(serviceName, data.result);
             
-            const probPercent = (realProbability * 100).toFixed(1);
+            const probPercent = (ai_probability * 100).toFixed(1);
 
             console.log(serviceName)
-            console.log(realProbability);
+            console.log(ai_probability);
             console.log(explanation);
             console.log(probPercent);
 
@@ -215,31 +215,55 @@ async function runAnalysis(serviceName, endpoint) {
 function extractServiceResult(serviceName, result) {
     // Защита от неопределённого или пустого результата
     if (!result) {
-        return { aiProbability: 0.0, explanation: 'Нет данных' };
+        return { ai_probability: 0.0, explanation: 'Нет данных' };
     }
 
     // Новый формат (метаданные видео) с полями ai_probability, real_probability и т.д.
     if (typeof result.ai_probability === 'number') {
-        const aiProb = result.ai_probability;
+        
+        // parse all fields
+        const ai_probability = result.ai_probability;
+        const ai_software_score = result.ai_software_score;
+        const camera_score = result.camera_score;
+        const confidence = result.confidence;
+        const contributions = result.contributions;
+        const gps_score = result.gps_score;
+        const known_camera_score = result.known_camera_score;
+        const metadata_richness = result.metadata_richness;
+        const real_probability  = result.real_probability;
+        const statistical_score = result.statistical_score;
+        const statistical_score_norm  = result.statistical_score_norm;
+        const timestamp_score = result.timestamp_score;
+        const verdict = result.verdict;
+
         const details = [];
         console.log(result);
+        if (result.ai_probability !== undefined) details.push(`📂 AI вероятность: ${(result.ai_probability*100).toFixed(0)}%\n`);
+        if (result.ai_software_score !== undefined) details.push(`🤖 AI ПО: ${(result.ai_software_score*100).toFixed(0)}%\n`);
         if (result.camera_score !== undefined) details.push(`📷 Камера: ${(result.camera_score*100).toFixed(0)}%\n`);
+        if (result.confidence !== undefined) details.push(`🔍 Доверие: ${(result.confidence*100).toFixed(0)}%\n`);
+        if (result.contributions !== undefined) details.push(`🤝 Вклад факторов: ${(result.contributions*100).toFixed(0)}%\n`);
         if (result.gps_score !== undefined) details.push(`🌍 GPS: ${(result.gps_score*100).toFixed(0)}%\n`);
-        if (result.ai_software_score !== undefined) details.push(`🤖 AI ПО: ${(result.ai_software_score*100).toFixed(0)}%`);
+        if (result.known_camera_score !== undefined) details.push(`📸 Известная камера: ${(result.known_camera_score*100).toFixed(0)}%\n`);
+        if (result.metadata_richness !== undefined) details.push(`📁 Богатство метаданных: ${(result.metadata_richness*100).toFixed(0)}%\n`);
+        if (result.real_probability !== undefined) details.push(`✅ Реальное: ${(result.real_probability*100).toFixed(0)}%\n`);
+        if (result.statistical_score !== undefined) details.push(`📊 Стат. анализ: ${(result.statistical_score*100).toFixed(0)}%\n`);
+        if (result.statistical_score_norm !== undefined) details.push(`📈 Норм. стат. анализ: ${(result.statistical_score_norm*100).toFixed(0)}%\n`);
+        if (result.timestamp_score !== undefined) details.push(`⏰ Временная метка: ${(result.timestamp_score*100).toFixed(0)}%\n`);
         const explanation = details.join(' | ') || `Вердикт: ${result.verdict || '—'}`;
-        return { aiProbability: aiProb, explanation };
+        return { ai_probability, explanation };
     }
     
     // Старый формат (видео/аудио) с probability_of_ai
     if (typeof result.probability_of_ai === 'number') {
         return {
-            aiProbability: result.probability_of_ai,
+            ai_probability: result.probability_of_ai,
             explanation: result.explanation || ''
         };
     }
     
     // Заглушка, если формат неизвестен
-    return { aiProbability: 0.0, explanation: 'Неизвестный формат результата' };
+    return { ai_probability: 0.0, explanation: 'Неизвестный формат результата' };
 }
 
 // Обновление отображения сервиса
@@ -284,7 +308,7 @@ function calculateFinalResult() {
     if (!allDone) return;
     
     // Извлекаем AI-вероятности
-    const probs = services.map(s => extractServiceResult(s, analysisResults[s]).aiProbability);
+    const probs = services.map(s => extractServiceResult(s, analysisResults[s]).ai_probability);
     
     // Средняя вероятность AI
     const avgAI = probs.reduce((a, b) => a + b, 0) / probs.length;
