@@ -186,7 +186,7 @@ async function runAnalysis(serviceName, endpoint) {
             // Извлекаем вероятность AI и объяснение через адаптер
             const { realProbability, explanation } = extractServiceResult(serviceName, data.result);
             
-            const probPercent = (Number(realProbability) * 100).toFixed(1);
+            const probPercent = (realProbability * 100).toFixed(1);
 
             console.log(serviceName)
             console.log(realProbability);
@@ -213,28 +213,32 @@ async function runAnalysis(serviceName, endpoint) {
 }
 
 function extractServiceResult(serviceName, result) {
-    // Если сервис вернул результат в новом формате (с полем ai_probability и real_probability)
-    if (result && typeof result.ai_probability === 'number') {
+    // Защита от неопределённого или пустого результата
+    if (!result) {
+        return { aiProbability: 0.0, explanation: 'Нет данных' };
+    }
+
+    // Новый формат (метаданные видео) с полями ai_probability, real_probability и т.д.
+    if (typeof result.ai_probability === 'number') {
         const aiProb = result.ai_probability;
-        // Собираем понятное объяснение из ключевых полей
         const details = [];
-        if (result.camera_score !== undefined) details.push(`📷 Камера: ${(result.camera_score*100).toFixed(0)}%`);
-        if (result.gps_score !== undefined) details.push(`🌍 GPS: ${(result.gps_score*100).toFixed(0)}%`);
+        if (result.camera_score !== undefined) details.push(`📷 Камера: ${(result.camera_score*100).toFixed(0)}%\n`);
+        if (result.gps_score !== undefined) details.push(`🌍 GPS: ${(result.gps_score*100).toFixed(0)}%\n`);
         if (result.ai_software_score !== undefined) details.push(`🤖 AI ПО: ${(result.ai_software_score*100).toFixed(0)}%`);
         const explanation = details.join(' | ') || `Вердикт: ${result.verdict || '—'}`;
         return { aiProbability: aiProb, explanation };
     }
     
-    // Старый формат (видео/аудио пока могут возвращать probability_of_ai)
-    if (result && typeof result.probability_of_ai === 'number') {
+    // Старый формат (видео/аудио) с probability_of_ai
+    if (typeof result.probability_of_ai === 'number') {
         return {
             aiProbability: result.probability_of_ai,
             explanation: result.explanation || ''
         };
     }
     
-    // Заглушка, если результат отсутствует
-    return { aiProbability: 0.0, explanation: 'Нет данных' };
+    // Заглушка, если формат неизвестен
+    return { aiProbability: 0.0, explanation: 'Неизвестный формат результата' };
 }
 
 // Обновление отображения сервиса
