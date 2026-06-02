@@ -222,6 +222,7 @@ function extractServiceResult(serviceName, result) {
     if (typeof result.ai_probability === 'number') {
         const aiProb = result.ai_probability;
         const details = [];
+        console.log(result);
         if (result.camera_score !== undefined) details.push(`📷 Камера: ${(result.camera_score*100).toFixed(0)}%\n`);
         if (result.gps_score !== undefined) details.push(`🌍 GPS: ${(result.gps_score*100).toFixed(0)}%\n`);
         if (result.ai_software_score !== undefined) details.push(`🤖 AI ПО: ${(result.ai_software_score*100).toFixed(0)}%`);
