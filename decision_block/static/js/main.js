@@ -186,7 +186,7 @@ async function runAnalysis(serviceName, endpoint) {
             // Извлекаем вероятность AI и объяснение через адаптер
             const { ai_probability, explanation } = extractServiceResult(serviceName, data.result);
             
-            const probPercent = (ai_probability * 100).toFixed(1);
+            const probPercent = ((1 - ai_probability) * 100).toFixed(1);
 
             console.log(serviceName)
             console.log(ai_probability);
@@ -308,13 +308,13 @@ function calculateFinalResult() {
     if (!allDone) return;
     
     // Извлекаем AI-вероятности
-    const probs = services.map(s => extractServiceResult(s, analysisResults[s]).ai_probability);
+    const probs = services.map(s => 1 - extractServiceResult(s, analysisResults[s]).ai_probability);
     
     // Средняя вероятность AI
     const avgAI = probs.reduce((a, b) => a + b, 0) / probs.length;
     
     // Вердикт: если средняя AI-вероятность >= 0.5, считаем AI
-    const isAI = avgAI > 0.3;
+    const isAI = avgAI > 0.5;
     const verdict = isAI ? 'NOT AI' : 'AI';
     
     // Заполняем интерфейс
