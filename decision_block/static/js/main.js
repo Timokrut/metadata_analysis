@@ -249,8 +249,6 @@ function extractServiceResult(serviceName, result) {
     }
     
     if (serviceName === 'audio') {
-        const result = data.result;   // предположим, что здесь лежат все поля как в вашем HTML
-
         const details = [];
 
         // Эмбеддинг статистика
