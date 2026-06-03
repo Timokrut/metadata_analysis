@@ -188,11 +188,6 @@ async function runAnalysis(serviceName, endpoint) {
             
             const probPercent = ((1 - ai_probability) * 100).toFixed(1);
 
-            console.log(serviceName)
-            console.log(ai_probability);
-            console.log(explanation);
-            console.log(probPercent);
-
             updateServiceDisplay(
                 serviceName,
                 'success',
@@ -219,8 +214,7 @@ function extractServiceResult(serviceName, result) {
     }
 
     // Новый формат (метаданные видео) с полями ai_probability, real_probability и т.д.
-    if (typeof result.ai_probability === 'number') {
-        
+    if (serviceName === 'metadata') {
         // parse all fields
         const ai_probability = result.ai_probability;
         const ai_software_score = result.ai_software_score;
@@ -237,25 +231,61 @@ function extractServiceResult(serviceName, result) {
         const verdict = result.verdict;
 
         const details = [];
-        console.log(result);
-        if (result.ai_probability !== undefined) details.push(`📂 AI вероятность: ${(result.ai_probability*100).toFixed(0)}%\n`);
-        if (result.ai_software_score !== undefined) details.push(`🤖 AI ПО: ${(result.ai_software_score*100).toFixed(0)}%\n`);
-        if (result.camera_score !== undefined) details.push(`📷 Камера: ${(result.camera_score*100).toFixed(0)}%\n`);
-        if (result.confidence !== undefined) details.push(`🔍 Доверие: ${(result.confidence*100).toFixed(0)}%\n`);
-        if (result.contributions !== undefined) details.push(`🤝 Вклад факторов: ${(result.contributions*100).toFixed(0)}%\n`);
-        if (result.gps_score !== undefined) details.push(`🌍 GPS: ${(result.gps_score*100).toFixed(0)}%\n`);
-        if (result.known_camera_score !== undefined) details.push(`📸 Известная камера: ${(result.known_camera_score*100).toFixed(0)}%\n`);
-        if (result.metadata_richness !== undefined) details.push(`📁 Богатство метаданных: ${(result.metadata_richness*100).toFixed(0)}%\n`);
-        if (result.real_probability !== undefined) details.push(`✅ Реальное: ${(result.real_probability*100).toFixed(0)}%\n`);
-        if (result.statistical_score !== undefined) details.push(`📊 Стат. анализ: ${(result.statistical_score*100).toFixed(0)}%\n`);
-        if (result.statistical_score_norm !== undefined) details.push(`📈 Норм. стат. анализ: ${(result.statistical_score_norm*100).toFixed(0)}%\n`);
-        if (result.timestamp_score !== undefined) details.push(`⏰ Временная метка: ${(result.timestamp_score*100).toFixed(0)}%\n`);
-        const explanation = details.join(' | ') || `Вердикт: ${result.verdict || '—'}`;
+
+        if (result.ai_probability !== undefined) details.push(`📂 AI вероятность: ${(result.ai_probability*100).toFixed(0)}%`);
+        if (result.ai_software_score !== undefined) details.push(`🤖 AI ПО: ${(result.ai_software_score*100).toFixed(0)}%`);
+        if (result.camera_score !== undefined) details.push(`📷 Камера: ${(result.camera_score*100).toFixed(0)}%`);
+        if (result.known_camera_score !== undefined) details.push(`📸 Известная камера: ${(result.known_camera_score*100).toFixed(0)}%`);
+        if (result.gps_score !== undefined) details.push(`🌍 GPS: ${(result.gps_score*100).toFixed(0)}%`);
+        if (result.confidence !== undefined) details.push(`🔍 Уверенность: ${(result.confidence*100).toFixed(0)}%`);
+        if (result.metadata_richness !== undefined) details.push(`📁 Богатство метаданных: ${(result.metadata_richness*100).toFixed(0)}%`);
+        if (result.timestamp_score !== undefined) details.push(`⏰ Временная метка: ${(result.timestamp_score*100).toFixed(0)}%`);
+        // if (result.contributions !== undefined) details.push(`🤝 Вклад факторов: ${(result.contributions*100).toFixed(0)}%`);
+        // if (result.real_probability !== undefined) details.push(`✅ Реальное: ${(result.real_probability*100).toFixed(0)}%`);
+        // if (result.statistical_score !== undefined) details.push(`📊 Стат. анализ: ${(result.statistical_score*100).toFixed(0)}%`);
+        // if (result.statistical_score_norm !== undefined) details.push(`📈 Норм. стат. анализ: ${(result.statistical_score_norm*100).toFixed(0)}%`);
+        const explanation = details.join('\n') || `Вердикт: ${result.verdict || '—'}`;
         return { ai_probability, explanation };
     }
     
-    // Старый формат (видео/аудио) с probability_of_ai
-    if (typeof result.probability_of_ai === 'number') {
+    if (serviceName === 'audio') {
+        const score = result.score;
+        const predicted_class = result.predicted_class;
+        const confidence = result.confidence;
+
+        const T_max = result.T_max;
+        const T_avg = result.T_avg;
+        const S_max = result.S_max;
+        const S_avg = result.S_avg;
+        const master = result.master;
+
+        const embedding_stats = result.embedding_stats;
+        const embedding_size = result.embedding_size;
+
+        const acoustic_features = result.acoustic_features;
+
+        const embedding_preview = result.embedding_preview;
+
+        const details = [];
+
+        if (score !== undefined) details.push(`📊 Оценка: ${(score*100).toFixed(0)}%`);
+        if (predicted_class !== undefined) details.push(`🏷️ Предсказаный класс: ${predicted_class}`);
+        if (confidence !== undefined) details.push(`🔍 Уверенность: ${(confidence*100).toFixed(0)}%`);
+        if (T_max !== undefined) details.push(`📈 Макс. темп: ${(T_max*100).toFixed(0)}%`);
+        if (T_avg !== undefined) details.push(`📊 Сред. темп: ${(T_avg*100).toFixed(0)}%`);
+        if (S_max !== undefined) details.push(`🎵 Макс. громкость: ${(S_max*100).toFixed(0)}%`);
+        if (S_avg !== undefined) details.push(`🔈 Сред. громкость: ${(S_avg*100).toFixed(0)}%`);
+        if (master !== undefined) details.push(`🎤 Главный исполнитель: ${master}`);
+        if (embedding_stats !== undefined) details.push(`📦 Статистика эмбеддинга: ${embedding_stats}`);
+        if (embedding_size !== undefined) details.push(`📏 Размер эмбеддинга: ${embedding_size}`);
+        if (acoustic_features !== undefined) details.push(`🎵 Акустические особенности: ${acoustic_features}`);
+        if (embedding_preview !== undefined) details.push(`🖼️ Превью эмбеддинга: ${embedding_preview}`);
+
+        const explanation = details.join('\n') || `Вердикт: ${predicted_class || '—'}`;
+        return { ai_probability, explanation };
+    }
+
+    if (serviceName === 'video') {
         return {
             ai_probability: result.probability_of_ai,
             explanation: result.explanation || ''
