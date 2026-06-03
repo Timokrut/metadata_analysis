@@ -249,6 +249,7 @@ function extractServiceResult(serviceName, result) {
     }
     
     if (serviceName === 'audio') {
+        const ai_probability = result.ai_probability;
         const details = [];
 
         // Эмбеддинг статистика
@@ -295,7 +296,7 @@ function extractServiceResult(serviceName, result) {
 
         const explanation = details.join('<br>') || `Вердикт: ${result.verdict || '—'}`;
         return {
-            ai_probability: result.score,
+            ai_probability,
             explanation
         };
     }
