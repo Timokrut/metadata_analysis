@@ -249,7 +249,7 @@ function extractServiceResult(serviceName, result) {
     }
     
     if (serviceName === 'audio') {
-        const score = result.ai_probability;
+        const ai_probability = result.ai_probability;
         const predicted_class = result.predicted_class;
         const confidence = result.confidence;
 
@@ -268,7 +268,7 @@ function extractServiceResult(serviceName, result) {
 
         const details = [];
 
-        if (score !== undefined) details.push(`📊 Оценка: ${(score*100).toFixed(0)}%`);
+        if (ai_probability !== undefined) details.push(`📊 AI вероятность: ${(ai_probability*100).toFixed(0)}%`);
         if (predicted_class !== undefined) details.push(`🏷️ Предсказаный класс: ${predicted_class}`);
         if (confidence !== undefined) details.push(`🔍 Уверенность: ${(confidence*100).toFixed(0)}%`);
         if (T_max !== undefined) details.push(`📈 Макс. темп: ${(T_max*100).toFixed(0)}%`);
