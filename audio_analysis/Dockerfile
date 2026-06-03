@@ -16,6 +16,8 @@ RUN pip install torchaudio==2.9.1
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+RUN pip install matplotlib==3.8.0
+
 COPY . .
 
 ENV PYTHONUNBUFFERED=1

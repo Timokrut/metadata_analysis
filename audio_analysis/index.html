@@ -1,70 +1,492 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Audio Uploader</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Deepfake Detector</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 50px auto;
-            max-width: 600px;
-            line-height: 1.6;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        form {
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .upload-area input {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            color: #666;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .result-card {
+            display: none;
+        }
+
+        .result-card.show {
+            display: block;
+        }
+
+        .score-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: conic-gradient(#4caf50 0deg, #f0f0f0 0deg);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin: 20px auto;
+        }
+
+        .score-inner {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: white;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            align-items: center;
+            justify-content: center;
         }
-        input[type=submit], button {
-            padding: 0.5em 1em;
-            background-color: #007BFF;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
+
+        .score-value {
+            font-size: 36px;
+            font-weight: bold;
         }
-        pre {
-            background-color: #fafafa;
-            padding: 1em;
-            overflow-x: scroll;
-            white-space: pre-wrap;
+
+        .score-label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .verdict {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .verdict.real { color: #4caf50; }
+        .verdict.fake { color: #f44336; }
+
+        .confidence {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .metric-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .metric-card h4 {
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .metric-unit {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .stat-list {
+            list-style: none;
+        }
+
+        .stat-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        canvas {
+            max-height: 200px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Загрузка аудиофайла</h1>
-    <form id="uploadForm" enctype="multipart/form-data">
-        <input type="file" name="file" accept="audio/wav"/>
-        <button type="submit">Отправить</button>
-    </form>
-    <div id="result"></div>
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ Audio Deepfake Detector</h1>
+            <p>Загрузите аудиофайл для проверки на подлинность</p>
+        </div>
+
+        <div class="card">
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📁</div>
+                <div>Нажмите для выбора файла</div>
+                <div class="file-info">Поддерживаются: WAV, MP3, FLAC, M4A, OGG</div>
+                <input type="file" id="fileInput" accept="audio/*">
+            </div>
+            <div style="text-align: center;">
+                <button onclick="uploadFile()" id="uploadBtn">🔍 Анализировать</button>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px;">Анализ аудио...</p>
+        </div>
+
+        <div class="result-card card" id="resultCard">
+            <div class="score-container">
+                <div class="score-circle" id="scoreCircle">
+                    <div class="score-inner">
+                        <div class="score-value" id="scoreValue">0.00</div>
+                        <div class="score-label">FAKE вероятность</div>
+                    </div>
+                </div>
+                <div class="verdict" id="verdict"></div>
+                <div class="confidence" id="confidence"></div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h4>📊 Эмбеддинг статистика</h4>
+                    <ul class="stat-list">
+                        <li><span>Среднее:</span><span id="embMean">-</span></li>
+                        <li><span>Станд. отклонение:</span><span id="embStd">-</span></li>
+                        <li><span>Минимум:</span><span id="embMin">-</span></li>
+                        <li><span>Максимум:</span><span id="embMax">-</span></li>
+                        <li><span>Размерность:</span><span id="embSize">-</span></li>
+                    </ul>
+                </div>
+
+                <div class="metric-card">
+                    <h4>🎵 Акустические признаки</h4>
+                    <ul class="stat-list">
+                        <li><span>Спектр. центроид:</span><span id="specCentroid">-</span></li>
+                        <li><span>RMS энергия:</span><span id="rmsMean">-</span></li>
+                        <li><span>Zero-crossing rate:</span><span id="zcrMean">-</span></li>
+                        <li><span>Спектр. энтропия:</span><span id="specEntropy">-</span></li>
+                    </ul>
+                </div>
+
+                <div class="metric-card">
+                    <h4>📈 Компоненты эмбеддинга</h4>
+                    <canvas id="embeddingChart" width="300" height="150"></canvas>
+                    <p style="font-size: 12px; color: #666; margin-top: 10px;">T_max, T_avg, S_max, S_avg (первые 16 значений)</p>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h4>🎚️ MFCC коэффициенты (средние)</h4>
+                    <canvas id="mfccChart" width="300" height="150"></canvas>
+                </div>
+
+                <div class="metric-card">
+                    <h4>🔊 Спектральные характеристики</h4>
+                    <ul class="stat-list" id="spectralStats">
+                        <li><span>Центроид (ср):</span><span id="specCentroidMean">-</span></li>
+                        <li><span>Центроид (стд):</span><span id="specCentroidStd">-</span></li>
+                        <li><span>Ширина полосы:</span><span id="specBandwidth">-</span></li>
+                        <li><span>Роллофф:</span><span id="specRolloff">-</span></li>
+                        <li><span>Плоскостность:</span><span id="specFlatness">-</span></li>
+                    </ul>
+                </div>
+
+                <div class="metric-card">
+                    <h4>📐 Временные характеристики</h4>
+                    <ul class="stat-list">
+                        <li><span>Амплитуда (макс):</span><span id="ampMax">-</span></li>
+                        <li><span>Амплитуда (ср):</span><span id="ampMean">-</span></li>
+                        <li><span>RMS (стд):</span><span id="rmsStd">-</span></li>
+                        <li><span>ZCR (стд):</span><span id="zcrStd">-</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        document.getElementById('uploadForm').addEventListener('submit', function(event){
-            event.preventDefault();
+        let embeddingChart, mfccChart;
+        let currentData = null;
 
-            const formData = new FormData(this);
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                let output = '<pre>';
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name;
+            if (fileName) {
+                document.querySelector('.file-info').innerHTML = `Выбран файл: ${fileName}`;
+                document.getElementById('uploadBtn').disabled = false;
+            }
+        });
 
-                if ('error' in data) {
-                    output += `<span style="color: red;">Ошибка: ${data.error}</span>`;
-                } else {
-                    output += `<br/>${data.score}`;
-                    output += `<br/>${data.T_max}`;
-                    output += `<br/>${data.T_avg}`;
-                    output += `<br/>${data.S_max}`;
-                    output += `<br/>${data.S_avg}`;
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Пожалуйста, выберите файл');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('resultCard').classList.remove('show');
+            document.getElementById('uploadBtn').disabled = true;
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
                 }
 
-                output += '</pre>';
-                document.getElementById('result').innerHTML = output;
-            });
-        });
+                currentData = data;
+                displayResults(data);
+
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+                console.error(error);
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+                document.getElementById('uploadBtn').disabled = false;
+            }
+        }
+
+        function displayResults(data) {
+            // Score и вердикт
+            const score = data.score;
+            const scorePercent = (score * 100).toFixed(1);
+            document.getElementById('scoreValue').textContent = scorePercent + '%';
+
+            const angle = score * 360;
+            document.getElementById('scoreCircle').style.background = `conic-gradient(#f44336 ${angle}deg, #e0e0e0 ${angle}deg)`;
+
+            const verdict = document.getElementById('verdict');
+            const isFake = score > 0.5;
+            verdict.textContent = isFake ? '⚠️ FAKE (Подделка)' : '✅ REAL (Подлинный)';
+            verdict.className = `verdict ${isFake ? 'fake' : 'real'}`;
+
+            document.getElementById('confidence').textContent = `Уверенность модели: ${(data.confidence * 100).toFixed(1)}%`;
+
+            // Статистика эмбеддинга
+            if (data.embedding_stats) {
+                document.getElementById('embMean').textContent = data.embedding_stats.mean.toFixed(4);
+                document.getElementById('embStd').textContent = data.embedding_stats.std.toFixed(4);
+                document.getElementById('embMin').textContent = data.embedding_stats.min.toFixed(4);
+                document.getElementById('embMax').textContent = data.embedding_stats.max.toFixed(4);
+                document.getElementById('embSize').textContent = data.embedding_size;
+            }
+
+            // Акустические признаки
+            if (data.acoustic_features) {
+                const ac = data.acoustic_features;
+                document.getElementById('specCentroid').textContent = ac.spectral_centroid_mean ? ac.spectral_centroid_mean.toFixed(0) + ' Hz' : '-';
+                document.getElementById('rmsMean').textContent = ac.rms_mean ? ac.rms_mean.toFixed(4) : '-';
+                document.getElementById('zcrMean').textContent = ac.zcr_mean ? ac.zcr_mean.toFixed(4) : '-';
+                document.getElementById('specEntropy').textContent = ac.spectral_entropy ? ac.spectral_entropy.toFixed(2) : '-';
+
+                document.getElementById('specCentroidMean').textContent = ac.spectral_centroid_mean ? ac.spectral_centroid_mean.toFixed(0) + ' Hz' : '-';
+                document.getElementById('specCentroidStd').textContent = ac.spectral_centroid_std ? ac.spectral_centroid_std.toFixed(0) + ' Hz' : '-';
+                document.getElementById('specBandwidth').textContent = ac.spectral_bandwidth_mean ? ac.spectral_bandwidth_mean.toFixed(0) + ' Hz' : '-';
+                document.getElementById('specRolloff').textContent = ac.spectral_rolloff_mean ? ac.spectral_rolloff_mean.toFixed(0) + ' Hz' : '-';
+                document.getElementById('specFlatness').textContent = ac.spectral_flatness_mean ? ac.spectral_flatness_mean.toFixed(4) : '-';
+
+                document.getElementById('ampMax').textContent = ac.amplitude_max ? ac.amplitude_max.toFixed(4) : '-';
+                document.getElementById('ampMean').textContent = ac.amplitude_mean ? ac.amplitude_mean.toFixed(4) : '-';
+                document.getElementById('rmsStd').textContent = ac.rms_std ? ac.rms_std.toFixed(4) : '-';
+                document.getElementById('zcrStd').textContent = ac.zcr_std ? ac.zcr_std.toFixed(4) : '-';
+            }
+
+            // График эмбеддинга (первые 16 значений из каждого компонента)
+            if (data.T_max && data.T_avg && data.S_max && data.S_avg) {
+                const tmax = data.T_max.slice(0, 16);
+                const tavg = data.T_avg.slice(0, 16);
+                const smax = data.S_max.slice(0, 16);
+                const savg = data.S_avg.slice(0, 16);
+
+                const labels = Array.from({length: 16}, (_, i) => i+1);
+
+                if (embeddingChart) {
+                    embeddingChart.destroy();
+                }
+
+                const ctx = document.getElementById('embeddingChart').getContext('2d');
+                embeddingChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'T_max', data: tmax, borderColor: '#ff6b6b', fill: false, tension: 0.1 },
+                            { label: 'T_avg', data: tavg, borderColor: '#4ecdc4', fill: false, tension: 0.1 },
+                            { label: 'S_max', data: smax, borderColor: '#45b7d1', fill: false, tension: 0.1 },
+                            { label: 'S_avg', data: savg, borderColor: '#96ceb4', fill: false, tension: 0.1 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: { legend: { position: 'top', labels: { font: { size: 10 } } } }
+                    }
+                });
+            }
+
+            // График MFCC
+            if (data.acoustic_features && data.acoustic_features.mfcc_mean) {
+                const mfccMeans = data.acoustic_features.mfcc_mean;
+                const labels = Array.from({length: mfccMeans.length}, (_, i) => `MFCC ${i+1}`);
+
+                if (mfccChart) {
+                    mfccChart.destroy();
+                }
+
+                const ctx2 = document.getElementById('mfccChart').getContext('2d');
+                mfccChart = new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{ label: 'MFCC среднее', data: mfccMeans, backgroundColor: '#667eea' }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            document.getElementById('resultCard').classList.add('show');
+        }
     </script>
 </body>
 </html>
