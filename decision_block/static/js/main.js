@@ -244,7 +244,7 @@ function extractServiceResult(serviceName, result) {
         // if (result.real_probability !== undefined) details.push(`✅ Реальное: ${(result.real_probability*100).toFixed(0)}%`);
         // if (result.statistical_score !== undefined) details.push(`📊 Стат. анализ: ${(result.statistical_score*100).toFixed(0)}%`);
         // if (result.statistical_score_norm !== undefined) details.push(`📈 Норм. стат. анализ: ${(result.statistical_score_norm*100).toFixed(0)}%`);
-        const explanation = details.join('<br>') || `Вердикт: ${result.verdict || '—'}`;
+        const explanation = details.join('\n') || `Вердикт: ${result.verdict || '—'}`;
         return { ai_probability, explanation };
     }
     
@@ -318,7 +318,7 @@ function extractServiceResult(serviceName, result) {
             details.push(`🖼️ Превью эмбеддинга: [${previewVals}…]`);
         }
 
-        const explanation = details.join('<br>') || `Вердикт: ${predicted_class || '—'}`;
+        const explanation = details.join('\n') || `Вердикт: ${predicted_class || '—'}`;
         return { ai_probability, explanation };
     }
 
@@ -355,6 +355,7 @@ function updateServiceDisplay(serviceName, status, probability, details) {
     
     // Обновляем детали
     detailsEl.textContent = details;
+    detailsEl.style.whiteSpace = 'pre-line';   
 }
 
 // Получение текста статуса
