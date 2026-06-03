@@ -288,7 +288,7 @@ def process_audio_data(
         )
 
     return {
-        "score": score,
+        "ai_probability": score,
         "predicted_class": "fake" if score > 0.5 else "real",
         "confidence": confidence,
 

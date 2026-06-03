@@ -249,7 +249,7 @@ function extractServiceResult(serviceName, result) {
     }
     
     if (serviceName === 'audio') {
-        const score = result.score;
+        const score = result.ai_probability;
         const predicted_class = result.predicted_class;
         const confidence = result.confidence;
 
