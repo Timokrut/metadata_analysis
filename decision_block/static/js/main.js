@@ -244,94 +244,74 @@ function extractServiceResult(serviceName, result) {
         // if (result.real_probability !== undefined) details.push(`✅ Реальное: ${(result.real_probability*100).toFixed(0)}%`);
         // if (result.statistical_score !== undefined) details.push(`📊 Стат. анализ: ${(result.statistical_score*100).toFixed(0)}%`);
         // if (result.statistical_score_norm !== undefined) details.push(`📈 Норм. стат. анализ: ${(result.statistical_score_norm*100).toFixed(0)}%`);
-        const explanation = details.join('\n') || `Вердикт: ${result.verdict || '—'}`;
+        const explanation = details.join('<br>') || `Вердикт: ${result.verdict || '—'}`;
         return { ai_probability, explanation };
     }
     
     if (serviceName === 'audio') {
-        const ai_probability = result.ai_probability;
-        const predicted_class = result.predicted_class;
-        const confidence = result.confidence;
-        const T_max = result.T_max;
-        const T_avg = result.T_avg;
-        const S_max = result.S_max;
-        const S_avg = result.S_avg;
-        const master = result.master;
-        const embedding_stats = result.embedding_stats;
-        const embedding_size = result.embedding_size;
-        const acoustic_features = result.acoustic_features;
-
-        // Вспомогательная функция для сводки по числовому массиву
-        const summarizeArray = (arr, label, factor = 1, unit = '', precision = 0) => {
-            if (!Array.isArray(arr) || arr.length === 0) return null;
-            const scaled = arr.map(v => v * factor);
-            const mean = scaled.reduce((a, b) => a + b, 0) / scaled.length;
-            const min = Math.min(...scaled);
-            const max = Math.max(...scaled);
-            return `${label}: сред. ${mean.toFixed(precision)}${unit} [${min.toFixed(precision)}–${max.toFixed(precision)}]`;
-        };
+        const result = data.result;   // предположим, что здесь лежат все поля как в вашем HTML
 
         const details = [];
 
-        // Основные скаляры
-        if (ai_probability !== undefined) details.push(`📊 AI вероятность: ${(ai_probability * 100).toFixed(0)}%`);
-        if (predicted_class !== undefined) details.push(`🏷️ Предсказанный класс: ${predicted_class}`);
-        if (confidence !== undefined) details.push(`🔍 Уверенность: ${(confidence * 100).toFixed(0)}%`);
-
-        // Акустические кривые – сводная статистика
-        const tempMaxStr = summarizeArray(T_max, '📈 Макс. темп', 100, '%', 0);
-        if (tempMaxStr) details.push(tempMaxStr);
-
-        const tempAvgStr = summarizeArray(T_avg, '📊 Сред. темп', 100, '%', 0);
-        if (tempAvgStr) details.push(tempAvgStr);
-
-        const sMaxStr = summarizeArray(S_max, '🎵 Макс. громкость', 1, '', 1);
-        if (sMaxStr) details.push(sMaxStr);
-
-        const sAvgStr = summarizeArray(S_avg, '🔈 Сред. громкость', 1, '', 1);
-        if (sAvgStr) details.push(sAvgStr);
-
-        const masterStr = summarizeArray(master, '🎤 Главный исполнитель (коэф.)', 1, '', 2);
-        if (masterStr) details.push(masterStr);
-
-        // Статистика эмбеддинга – красиво форматируем объект
-        if (embedding_stats && typeof embedding_stats === 'object') {
-            const { mean, std, min, max } = embedding_stats;
-            details.push(`📦 Эмбеддинг: mean=${mean.toFixed(3)}, std=${std.toFixed(3)}, min..max=${min.toFixed(3)}..${max.toFixed(3)}`);
-        }
-        if (embedding_size !== undefined) details.push(`📏 Размер эмбеддинга: ${embedding_size}`);
-
-        // Акустические особенности – выборочный вывод ключевых полей
-        if (acoustic_features && typeof acoustic_features === 'object') {
-            const afParts = [];
-            if (acoustic_features.spectral_centroid !== undefined) afParts.push(`центроид: ${acoustic_features.spectral_centroid.toFixed(0)} Гц`);
-            if (acoustic_features.rms_energy !== undefined) afParts.push(`RMS: ${acoustic_features.rms_energy.toFixed(3)}`);
-            if (acoustic_features.zero_crossing_rate !== undefined) afParts.push(`ZCR: ${acoustic_features.zero_crossing_rate.toFixed(3)}`);
-            // При необходимости добавьте другие поля, которые возвращает extract_acoustic_features
-            if (afParts.length > 0) details.push(`🎵 Акуст. признаки: ${afParts.join(', ')}`);
-            else details.push(`🎵 Акуст. признаки: ${JSON.stringify(acoustic_features)}`); // fallback
+        // Эмбеддинг статистика
+        if (result.embedding_stats) {
+            const es = result.embedding_stats;
+            details.push('📊 <b>Эмбеддинг статистика</b>');
+            if (es.mean !== undefined) details.push(`Среднее: ${es.mean.toFixed(4)}`);
+            if (es.std !== undefined) details.push(`Станд. отклонение: ${es.std.toFixed(4)}`);
+            if (es.min !== undefined) details.push(`Минимум: ${es.min.toFixed(4)}`);
+            if (es.max !== undefined) details.push(`Максимум: ${es.max.toFixed(4)}`);
+            if (result.embedding_size) details.push(`Размерность: ${result.embedding_size}`);
         }
 
-        // Превью эмбеддинга – первые несколько значений
-        if (Array.isArray(result.embedding_preview) && result.embedding_preview.length > 0) {
-            const previewVals = result.embedding_preview.map(v => v.toFixed(3)).join(', ');
-            details.push(`🖼️ Превью эмбеддинга: [${previewVals}…]`);
+        // Акустические признаки
+        if (result.acoustic_features) {
+            const ac = result.acoustic_features;
+            details.push('<br>🎵 <b>Акустические признаки</b>');
+            if (ac.spectral_centroid_mean !== undefined) details.push(`Спектр. центроид: ${ac.spectral_centroid_mean.toFixed(0)} Hz`);
+            if (ac.rms_mean !== undefined) details.push(`RMS энергия: ${ac.rms_mean.toFixed(4)}`);
+            if (ac.zcr_mean !== undefined) details.push(`Zero-crossing rate: ${ac.zcr_mean.toFixed(4)}`);
+            if (ac.spectral_entropy !== undefined) details.push(`Спектр. энтропия: ${ac.spectral_entropy.toFixed(2)}`);
         }
 
-        const explanation = details.join('\n') || `Вердикт: ${predicted_class || '—'}`;
-        return { ai_probability, explanation };
-    }
+        // Спектральные характеристики
+        if (result.acoustic_features) {
+            const ac = result.acoustic_features;
+            details.push('<br>📈 <b>Спектральные характеристики</b>');
+            if (ac.spectral_centroid_mean !== undefined) details.push(`Центроид (ср): ${ac.spectral_centroid_mean.toFixed(0)} Hz`);
+            if (ac.spectral_centroid_std !== undefined) details.push(`Центроид (стд): ${ac.spectral_centroid_std.toFixed(0)} Hz`);
+            if (ac.spectral_bandwidth_mean !== undefined) details.push(`Ширина полосы: ${ac.spectral_bandwidth_mean.toFixed(0)} Hz`);
+            if (ac.spectral_rolloff_mean !== undefined) details.push(`Роллофф: ${ac.spectral_rolloff_mean.toFixed(0)} Hz`);
+            if (ac.spectral_flatness_mean !== undefined) details.push(`Плоскостность: ${ac.spectral_flatness_mean.toFixed(4)}`);
+        }
 
-    if (serviceName === 'video') {
+        // Временные характеристики
+        if (result.acoustic_features) {
+            const ac = result.acoustic_features;
+            details.push('<br>⏱️ <b>Временные характеристики</b>');
+            if (ac.amplitude_max !== undefined) details.push(`Амплитуда (макс): ${ac.amplitude_max.toFixed(4)}`);
+            if (ac.amplitude_mean !== undefined) details.push(`Амплитуда (ср): ${ac.amplitude_mean.toFixed(4)}`);
+            if (ac.rms_std !== undefined) details.push(`RMS (стд): ${ac.rms_std.toFixed(4)}`);
+            if (ac.zcr_std !== undefined) details.push(`ZCR (стд): ${ac.zcr_std.toFixed(4)}`);
+        }
+
+        const explanation = details.join('<br>') || `Вердикт: ${result.verdict || '—'}`;
         return {
-            ai_probability: result.probability_of_ai,
-            explanation: result.explanation || ''
+            ai_probability: result.score,
+            explanation
         };
     }
-    
-    // Заглушка, если формат неизвестен
-    return { ai_probability: 0.0, explanation: 'Неизвестный формат результата' };
-}
+
+        if (serviceName === 'video') {
+            return {
+                ai_probability: result.probability_of_ai,
+                explanation: result.explanation || ''
+            };
+        }
+        
+        // Заглушка, если формат неизвестен
+        return { ai_probability: 0.0, explanation: 'Неизвестный формат результата' };
+    }
 
 // Обновление отображения сервиса
 function updateServiceDisplay(serviceName, status, probability, details) {
@@ -354,8 +334,8 @@ function updateServiceDisplay(serviceName, status, probability, details) {
     probEl.textContent = probability;
     
     // Обновляем детали
-    detailsEl.textContent = details;
-    detailsEl.style.whiteSpace = 'pre-line';   
+    detailsEl.innerHTML = details;
+    // detailsEl.style.whiteSpace = 'pre-line';   
 }
 
 // Получение текста статуса
