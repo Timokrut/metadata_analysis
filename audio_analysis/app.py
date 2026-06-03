@@ -386,7 +386,7 @@ def main(args: argparse.Namespace):
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=5555,
+        port=port,
         log_level="info"
     )
 
