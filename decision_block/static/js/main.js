@@ -244,7 +244,7 @@ function extractServiceResult(serviceName, result) {
         // if (result.real_probability !== undefined) details.push(`✅ Реальное: ${(result.real_probability*100).toFixed(0)}%`);
         // if (result.statistical_score !== undefined) details.push(`📊 Стат. анализ: ${(result.statistical_score*100).toFixed(0)}%`);
         // if (result.statistical_score_norm !== undefined) details.push(`📈 Норм. стат. анализ: ${(result.statistical_score_norm*100).toFixed(0)}%`);
-        const explanation = details.join('\n') || `Вердикт: ${result.verdict || '—'}`;
+        const explanation = details.join('<br>') || `Вердикт: ${result.verdict || '—'}`;
         return { ai_probability, explanation };
     }
     
@@ -252,36 +252,73 @@ function extractServiceResult(serviceName, result) {
         const ai_probability = result.ai_probability;
         const predicted_class = result.predicted_class;
         const confidence = result.confidence;
-
         const T_max = result.T_max;
         const T_avg = result.T_avg;
         const S_max = result.S_max;
         const S_avg = result.S_avg;
         const master = result.master;
-
         const embedding_stats = result.embedding_stats;
         const embedding_size = result.embedding_size;
-
         const acoustic_features = result.acoustic_features;
 
-        const embedding_preview = result.embedding_preview;
+        // Вспомогательная функция для сводки по числовому массиву
+        const summarizeArray = (arr, label, factor = 1, unit = '', precision = 0) => {
+            if (!Array.isArray(arr) || arr.length === 0) return null;
+            const scaled = arr.map(v => v * factor);
+            const mean = scaled.reduce((a, b) => a + b, 0) / scaled.length;
+            const min = Math.min(...scaled);
+            const max = Math.max(...scaled);
+            return `${label}: сред. ${mean.toFixed(precision)}${unit} [${min.toFixed(precision)}–${max.toFixed(precision)}]`;
+        };
 
         const details = [];
 
-        if (ai_probability !== undefined) details.push(`📊 AI вероятность: ${(ai_probability*100).toFixed(0)}%`);
-        if (predicted_class !== undefined) details.push(`🏷️ Предсказаный класс: ${predicted_class}`);
-        if (confidence !== undefined) details.push(`🔍 Уверенность: ${(confidence*100).toFixed(0)}%`);
-        if (T_max !== undefined) details.push(`📈 Макс. темп: ${(T_max*100).toFixed(0)}%`);
-        if (T_avg !== undefined) details.push(`📊 Сред. темп: ${(T_avg*100).toFixed(0)}%`);
-        if (S_max !== undefined) details.push(`🎵 Макс. громкость: ${(S_max*100).toFixed(0)}%`);
-        if (S_avg !== undefined) details.push(`🔈 Сред. громкость: ${(S_avg*100).toFixed(0)}%`);
-        if (master !== undefined) details.push(`🎤 Главный исполнитель: ${master}`);
-        if (embedding_stats !== undefined) details.push(`📦 Статистика эмбеддинга: ${embedding_stats}`);
-        if (embedding_size !== undefined) details.push(`📏 Размер эмбеддинга: ${embedding_size}`);
-        if (acoustic_features !== undefined) details.push(`🎵 Акустические особенности: ${acoustic_features}`);
-        if (embedding_preview !== undefined) details.push(`🖼️ Превью эмбеддинга: ${embedding_preview}`);
+        // Основные скаляры
+        if (ai_probability !== undefined) details.push(`📊 AI вероятность: ${(ai_probability * 100).toFixed(0)}%`);
+        if (predicted_class !== undefined) details.push(`🏷️ Предсказанный класс: ${predicted_class}`);
+        if (confidence !== undefined) details.push(`🔍 Уверенность: ${(confidence * 100).toFixed(0)}%`);
 
-        const explanation = details.join('\n') || `Вердикт: ${predicted_class || '—'}`;
+        // Акустические кривые – сводная статистика
+        const tempMaxStr = summarizeArray(T_max, '📈 Макс. темп', 100, '%', 0);
+        if (tempMaxStr) details.push(tempMaxStr);
+
+        const tempAvgStr = summarizeArray(T_avg, '📊 Сред. темп', 100, '%', 0);
+        if (tempAvgStr) details.push(tempAvgStr);
+
+        const sMaxStr = summarizeArray(S_max, '🎵 Макс. громкость', 1, '', 1);
+        if (sMaxStr) details.push(sMaxStr);
+
+        const sAvgStr = summarizeArray(S_avg, '🔈 Сред. громкость', 1, '', 1);
+        if (sAvgStr) details.push(sAvgStr);
+
+        const masterStr = summarizeArray(master, '🎤 Главный исполнитель (коэф.)', 1, '', 2);
+        if (masterStr) details.push(masterStr);
+
+        // Статистика эмбеддинга – красиво форматируем объект
+        if (embedding_stats && typeof embedding_stats === 'object') {
+            const { mean, std, min, max } = embedding_stats;
+            details.push(`📦 Эмбеддинг: mean=${mean.toFixed(3)}, std=${std.toFixed(3)}, min..max=${min.toFixed(3)}..${max.toFixed(3)}`);
+        }
+        if (embedding_size !== undefined) details.push(`📏 Размер эмбеддинга: ${embedding_size}`);
+
+        // Акустические особенности – выборочный вывод ключевых полей
+        if (acoustic_features && typeof acoustic_features === 'object') {
+            const afParts = [];
+            if (acoustic_features.spectral_centroid !== undefined) afParts.push(`центроид: ${acoustic_features.spectral_centroid.toFixed(0)} Гц`);
+            if (acoustic_features.rms_energy !== undefined) afParts.push(`RMS: ${acoustic_features.rms_energy.toFixed(3)}`);
+            if (acoustic_features.zero_crossing_rate !== undefined) afParts.push(`ZCR: ${acoustic_features.zero_crossing_rate.toFixed(3)}`);
+            // При необходимости добавьте другие поля, которые возвращает extract_acoustic_features
+            if (afParts.length > 0) details.push(`🎵 Акуст. признаки: ${afParts.join(', ')}`);
+            else details.push(`🎵 Акуст. признаки: ${JSON.stringify(acoustic_features)}`); // fallback
+        }
+
+        // Превью эмбеддинга – первые несколько значений
+        if (Array.isArray(result.embedding_preview) && result.embedding_preview.length > 0) {
+            const previewVals = result.embedding_preview.map(v => v.toFixed(3)).join(', ');
+            details.push(`🖼️ Превью эмбеддинга: [${previewVals}…]`);
+        }
+
+        const explanation = details.join('<br>') || `Вердикт: ${predicted_class || '—'}`;
         return { ai_probability, explanation };
     }
 
