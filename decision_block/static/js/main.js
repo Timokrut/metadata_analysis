@@ -171,49 +171,146 @@ async function runAnalysis(serviceName, endpoint) {
     const startTime = Date.now();
     
     try {
-        // Обновляем статус
         updateServiceDisplay(serviceName, 'processing', '-', 'Анализ выполняется...');
         
-        // Отправляем запрос
         const response = await fetch(endpoint);
-        const result = await response.json();
+        const data = await response.json();
         
         const endTime = Date.now();
         const duration = ((endTime - startTime) / 1000).toFixed(2);
         
-        if (response.ok && result.status === 'success') {
-            // Сохраняем результат
-            analysisResults[serviceName] = result.result;
+        if (data.status === 'success') {
+            // Сохраняем сырой результат
+            analysisResults[serviceName] = data.result;
             
-            // Обновляем отображение
-            const probability = result.result.probability_of_ai * 100;
+            // Извлекаем вероятность AI и объяснение через адаптер
+            const { ai_probability, explanation } = extractServiceResult(serviceName, data.result);
+            
+            const probPercent = ((1 - ai_probability) * 100).toFixed(1);
+
             updateServiceDisplay(
                 serviceName,
                 'success',
-                `${probability.toFixed(1)}%`,
-                result.result.explanation || 'Анализ завершен успешно'
+                `${probPercent}%`,
+                explanation || 'Анализ завершён'
             );
             
-            document.getElementById(`${serviceName}Time`).textContent = `Выполнено за ${duration} сек`;
-            
+            document.getElementById(`${serviceName}Time`).textContent = 
+                `Выполнено за ${duration} сек`;
         } else {
-            throw new Error(result.error || 'Неизвестная ошибка');
+            throw new Error(data.error || 'Неизвестная ошибка');
         }
-        
     } catch (error) {
         console.error(`${serviceName} analysis error:`, error);
-        
-        updateServiceDisplay(
-            serviceName,
-            'error',
-            'Ошибка',
-            error.message || 'Не удалось выполнить анализ'
-        );
-        
-        // Устанавливаем вероятность по умолчанию
-        analysisResults[serviceName] = { probability_of_ai: 0.0 };
+        updateServiceDisplay(serviceName, 'error', 'Ошибка', error.message);
+        analysisResults[serviceName] = null;
     }
 }
+
+function extractServiceResult(serviceName, result) {
+    // Защита от неопределённого или пустого результата
+    if (!result) {
+        return { ai_probability: 0.0, explanation: 'Нет данных' };
+    }
+
+    // Новый формат (метаданные видео) с полями ai_probability, real_probability и т.д.
+    if (serviceName === 'metadata') {
+        // parse all fields
+        const ai_probability = result.ai_probability;
+        const ai_software_score = result.ai_software_score;
+        const camera_score = result.camera_score;
+        const confidence = result.confidence;
+        const contributions = result.contributions;
+        const gps_score = result.gps_score;
+        const known_camera_score = result.known_camera_score;
+        const metadata_richness = result.metadata_richness;
+        const real_probability  = result.real_probability;
+        const statistical_score = result.statistical_score;
+        const statistical_score_norm  = result.statistical_score_norm;
+        const timestamp_score = result.timestamp_score;
+        const verdict = result.verdict;
+
+        const details = [];
+
+        if (result.ai_probability !== undefined) details.push(`📂 AI вероятность: ${(result.ai_probability*100).toFixed(0)}%`);
+        if (result.ai_software_score !== undefined) details.push(`🤖 AI ПО: ${(result.ai_software_score*100).toFixed(0)}%`);
+        if (result.camera_score !== undefined) details.push(`📷 Камера: ${(result.camera_score*100).toFixed(0)}%`);
+        if (result.known_camera_score !== undefined) details.push(`📸 Известная камера: ${(result.known_camera_score*100).toFixed(0)}%`);
+        if (result.gps_score !== undefined) details.push(`🌍 GPS: ${(result.gps_score*100).toFixed(0)}%`);
+        if (result.confidence !== undefined) details.push(`🔍 Уверенность: ${(result.confidence*100).toFixed(0)}%`);
+        if (result.metadata_richness !== undefined) details.push(`📁 Богатство метаданных: ${(result.metadata_richness*100).toFixed(0)}%`);
+        if (result.timestamp_score !== undefined) details.push(`⏰ Временная метка: ${(result.timestamp_score*100).toFixed(0)}%`);
+        // if (result.contributions !== undefined) details.push(`🤝 Вклад факторов: ${(result.contributions*100).toFixed(0)}%`);
+        // if (result.real_probability !== undefined) details.push(`✅ Реальное: ${(result.real_probability*100).toFixed(0)}%`);
+        // if (result.statistical_score !== undefined) details.push(`📊 Стат. анализ: ${(result.statistical_score*100).toFixed(0)}%`);
+        // if (result.statistical_score_norm !== undefined) details.push(`📈 Норм. стат. анализ: ${(result.statistical_score_norm*100).toFixed(0)}%`);
+        const explanation = details.join('<br>') || `Вердикт: ${result.verdict || '—'}`;
+        return { ai_probability, explanation };
+    }
+    
+    if (serviceName === 'audio') {
+        const ai_probability = result.ai_probability;
+        const details = [];
+
+        // Эмбеддинг статистика
+        if (result.embedding_stats) {
+            const es = result.embedding_stats;
+            details.push('📊 <b>Эмбеддинг статистика</b>');
+            if (es.mean !== undefined) details.push(`Среднее: ${es.mean.toFixed(4)}`);
+            if (es.std !== undefined) details.push(`Станд. отклонение: ${es.std.toFixed(4)}`);
+            if (es.min !== undefined) details.push(`Минимум: ${es.min.toFixed(4)}`);
+            if (es.max !== undefined) details.push(`Максимум: ${es.max.toFixed(4)}`);
+            if (result.embedding_size) details.push(`Размерность: ${result.embedding_size}`);
+        }
+
+        // Акустические признаки
+        if (result.acoustic_features) {
+            const ac = result.acoustic_features;
+            details.push('<br>🎵 <b>Акустические признаки</b>');
+            if (ac.spectral_centroid_mean !== undefined) details.push(`Спектр. центроид: ${ac.spectral_centroid_mean.toFixed(0)} Hz`);
+            if (ac.rms_mean !== undefined) details.push(`RMS энергия: ${ac.rms_mean.toFixed(4)}`);
+            if (ac.zcr_mean !== undefined) details.push(`Zero-crossing rate: ${ac.zcr_mean.toFixed(4)}`);
+            if (ac.spectral_entropy !== undefined) details.push(`Спектр. энтропия: ${ac.spectral_entropy.toFixed(2)}`);
+        }
+
+        // Спектральные характеристики
+        if (result.acoustic_features) {
+            const ac = result.acoustic_features;
+            details.push('<br>📈 <b>Спектральные характеристики</b>');
+            if (ac.spectral_centroid_mean !== undefined) details.push(`Центроид (ср): ${ac.spectral_centroid_mean.toFixed(0)} Hz`);
+            if (ac.spectral_centroid_std !== undefined) details.push(`Центроид (стд): ${ac.spectral_centroid_std.toFixed(0)} Hz`);
+            if (ac.spectral_bandwidth_mean !== undefined) details.push(`Ширина полосы: ${ac.spectral_bandwidth_mean.toFixed(0)} Hz`);
+            if (ac.spectral_rolloff_mean !== undefined) details.push(`Роллофф: ${ac.spectral_rolloff_mean.toFixed(0)} Hz`);
+            if (ac.spectral_flatness_mean !== undefined) details.push(`Плоскостность: ${ac.spectral_flatness_mean.toFixed(4)}`);
+        }
+
+        // Временные характеристики
+        if (result.acoustic_features) {
+            const ac = result.acoustic_features;
+            details.push('<br>⏱️ <b>Временные характеристики</b>');
+            if (ac.amplitude_max !== undefined) details.push(`Амплитуда (макс): ${ac.amplitude_max.toFixed(4)}`);
+            if (ac.amplitude_mean !== undefined) details.push(`Амплитуда (ср): ${ac.amplitude_mean.toFixed(4)}`);
+            if (ac.rms_std !== undefined) details.push(`RMS (стд): ${ac.rms_std.toFixed(4)}`);
+            if (ac.zcr_std !== undefined) details.push(`ZCR (стд): ${ac.zcr_std.toFixed(4)}`);
+        }
+
+        const explanation = details.join('<br>') || `Вердикт: ${result.verdict || '—'}`;
+        return {
+            ai_probability,
+            explanation
+        };
+    }
+
+        if (serviceName === 'video') {
+            return {
+                ai_probability: result.probability_of_ai,
+                explanation: result.explanation || ''
+            };
+        }
+        
+        // Заглушка, если формат неизвестен
+        return { ai_probability: 0.0, explanation: 'Неизвестный формат результата' };
+    }
 
 // Обновление отображения сервиса
 function updateServiceDisplay(serviceName, status, probability, details) {
@@ -236,7 +333,8 @@ function updateServiceDisplay(serviceName, status, probability, details) {
     probEl.textContent = probability;
     
     // Обновляем детали
-    detailsEl.textContent = details;
+    detailsEl.innerHTML = details;
+    // detailsEl.style.whiteSpace = 'pre-line';   
 }
 
 // Получение текста статуса
@@ -252,48 +350,31 @@ function getStatusText(status) {
 
 // Вычисление итогового результата
 function calculateFinalResult() {
-    // Проверяем, что все анализы выполнены
-    const allDone = ['metadata', 'video', 'audio'].every(
-        service => analysisResults[service]
-    );
-    
+    const services = ['metadata', 'video', 'audio'];
+    const allDone = services.every(s => analysisResults[s] !== null && analysisResults[s] !== undefined);
     if (!allDone) return;
     
-    // Вычисляем среднюю вероятность
-    const probabilities = [
-        analysisResults.metadata.probability_of_ai,
-        analysisResults.video.probability_of_ai,
-        analysisResults.audio.probability_of_ai
-    ];
+    // Извлекаем AI-вероятности
+    const probs = services.map(s => 1 - extractServiceResult(s, analysisResults[s]).ai_probability);
     
-    const avgProbability = (Number(probabilities[0]) + Number(probabilities[1]) + Number(probabilities[2])) / 3;
+    // Средняя вероятность AI
+    const avgAI = probs.reduce((a, b) => a + b, 0) / probs.length;
     
-    // Определяем вердикт
-    const isAI = avgProbability > 0.3;
+    // Вердикт: если средняя AI-вероятность >= 0.5, считаем AI
+    const isAI = avgAI > 0.5;
     const verdict = isAI ? 'NOT AI' : 'AI';
     
-    // Обновляем отображение
-    document.getElementById('finalMetadataProb').textContent = 
-        `${(probabilities[0] * 100).toFixed(1)}%`;
+    // Заполняем интерфейс
+    document.getElementById('finalMetadataProb').textContent = `${(probs[0] * 100).toFixed(1)}%`;
+    document.getElementById('finalVideoProb').textContent = `${(probs[1] * 100).toFixed(1)}%`;
+    document.getElementById('finalAudioProb').textContent = `${(probs[2] * 100).toFixed(1)}%`;
+    document.getElementById('finalAvgProb').textContent = `${(avgAI * 100).toFixed(1)}%`;
+    document.getElementById('confidenceValue').textContent = `${(avgAI * 100).toFixed(1)}%`;
     
-    document.getElementById('finalVideoProb').textContent = 
-        `${(probabilities[1] * 100).toFixed(1)}%`;
+    const verdictEl = document.getElementById('verdictText');
+    verdictEl.textContent = verdict;
+    verdictEl.className = `verdict-value ${isAI ? 'ai' : 'real'}`;
     
-    document.getElementById('finalAudioProb').textContent = 
-        `${(probabilities[2] * 100).toFixed(1)}%`;
-    
-    document.getElementById('finalAvgProb').textContent = 
-        `${(avgProbability * 100).toFixed(1)}%`;
-    
-    document.getElementById('confidenceValue').textContent = 
-        `${(avgProbability * 100).toFixed(1)}%`;
-    
-    document.getElementById('verdictText').textContent = verdict;
-
-    const verd = isAI ? 'not-ai' : 'ai';
-    document.getElementById('verdictText').className = `verdict-value ${verd}`;
-    
-    // Показываем итоговый результат
     document.getElementById('finalResult').style.display = 'block';
     document.getElementById('finalResult').scrollIntoView({ behavior: 'smooth' });
 }

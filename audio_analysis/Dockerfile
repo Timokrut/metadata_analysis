@@ -11,12 +11,12 @@ RUN apt-get update && \
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir \
-    torch==2.9.1 \
-    torchaudio==2.9.1 \
-    --index-url https://download.pytorch.org/whl/cpu && \
+RUN pip install torch==2.9.1
+RUN pip install torchaudio==2.9.1 
+RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
+
+RUN pip install matplotlib==3.8.0
 
 COPY . .
 

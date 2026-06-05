@@ -389,12 +389,12 @@ main {
     text-transform: uppercase;
 }
 
-.verdict-value.ai {
+.verdict-value.not-ai {
     background: linear-gradient(135deg, #f093fb, #f5576c);
     color: white;
 }
 
-.verdict-value.not-ai {
+.verdict-value.ai {
     background: linear-gradient(135deg, #43e97b, #38f9d7);
     color: white;
 }

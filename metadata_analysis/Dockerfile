@@ -10,6 +10,6 @@ RUN pip install "fastapi[standard]"
 RUN pip install requests
 RUN git clone https://github.com/exiftool/exiftool.git 
 
-COPY server.py tags.db ./
+COPY server.py video_tags.db ./
 
 # CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8888"]
